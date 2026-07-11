@@ -22,6 +22,7 @@ export async function POST(request: Request) {
     category: body.category ?? "General",
     stock: Number(body.stock ?? 0),
     emoji: body.emoji ?? "📦",
+    image: body.image?.trim() || "/products/default.svg",
   });
 
   return NextResponse.json(product, { status: 201 });

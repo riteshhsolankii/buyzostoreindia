@@ -1,14 +1,15 @@
 @import "tailwindcss";
 
 :root {
-  --background: #09090b;
-  --surface: #111114;
-  --surface-2: #18181c;
-  --border: #26262b;
-  --foreground: #f4f4f5;
-  --muted: #a1a1aa;
-  --accent: #8b5cf6;
-  --accent-hover: #7c3aed;
+  --background: #0a0a0a;
+  --surface: #121212;
+  --surface-2: #1a1a1a;
+  --border: #262626;
+  --foreground: #f5f5f5;
+  --muted: #a3a3a3;
+  --accent: #a3d91c;
+  --accent-2: #e9ef35;
+  --accent-hover: #bce42d;
   --success: #22c55e;
   --danger: #ef4444;
   --warning: #f59e0b;
@@ -22,12 +23,79 @@
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
   --color-accent: var(--accent);
+  --color-accent-2: var(--accent-2);
   --color-accent-hover: var(--accent-hover);
   --color-success: var(--success);
   --color-danger: var(--danger);
   --color-warning: var(--warning);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+}
+
+@theme {
+  --animate-fade-up: fade-up 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-fade-in: fade-in 0.5s ease-out both;
+  --animate-scale-in: scale-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-slide-in: slide-in 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-float: float 5s ease-in-out infinite;
+  --animate-glow: glow 2.5s ease-in-out infinite;
+
+  @keyframes fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  @keyframes scale-in {
+    from {
+      opacity: 0;
+      transform: scale(0.94);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes slide-in {
+    from {
+      opacity: 0;
+      transform: translateX(-14px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  @keyframes float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-10px);
+    }
+  }
+  @keyframes glow {
+    0%,
+    100% {
+      box-shadow: 0 0 24px 0 rgba(163, 217, 28, 0.25);
+    }
+    50% {
+      box-shadow: 0 0 44px 6px rgba(163, 217, 28, 0.45);
+    }
+  }
 }
 
 html {
@@ -42,5 +110,17 @@ body {
 
 ::selection {
   background: var(--accent);
-  color: white;
+  color: #0a0a0a;
+}
+
+/* Brand gradient helpers — sampled from the Buyzo logo (yellow → green) */
+.text-brand-gradient {
+  background: linear-gradient(135deg, #e9ef35 0%, #b8dd26 50%, #8cc414 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.bg-brand-gradient {
+  background: linear-gradient(135deg, #e9ef35 0%, #b8dd26 50%, #8cc414 100%);
 }

@@ -1,94 +1,167 @@
+import Image from "next/image";
 import Link from "next/link";
 import { listProducts } from "@/lib/products";
+import { listCustomers } from "@/lib/customers";
 
 export const dynamic = "force-dynamic";
 
 export default function AdminDashboard() {
   const products = listProducts();
+  const customers = listCustomers();
   const totalStock = products.reduce((sum, p) => sum + p.stock, 0);
   const inventoryValue = products.reduce((sum, p) => sum + p.price * p.stock, 0);
   const lowStock = products.filter((p) => p.stock > 0 && p.stock < 10);
   const outOfStock = products.filter((p) => p.stock === 0);
+  const recentLeads = customers.slice(0, 5);
 
   const stats = [
-    { label: "Products", value: products.length.toString(), icon: "📦" },
-    { label: "Units in stock", value: totalStock.toString(), icon: "🏷️" },
+    {
+      label: "Products",
+      value: products.length.toString(),
+      sub: `${totalStock} units in stock`,
+    },
     {
       label: "Inventory value",
       value: `$${inventoryValue.toLocaleString(undefined, {
         maximumFractionDigits: 0,
       })}`,
-      icon: "💰",
+      sub: "across the catalog",
     },
     {
-      label: "Low / out of stock",
-      value: `${lowStock.length} / ${outOfStock.length}`,
-      icon: "⚠️",
+      label: "Customer leads",
+      value: customers.length.toString(),
+      sub: "registered via the shop",
+    },
+    {
+      label: "Stock alerts",
+      value: `${lowStock.length + outOfStock.length}`,
+      sub: `${lowStock.length} low · ${outOfStock.length} out`,
     },
   ];
 
   return (
     <div className="max-w-5xl">
-      <div className="flex items-center justify-between mb-8">
+      <div className="animate-fade-up mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Dashboard</h1>
-          <p className="text-sm text-muted mt-1">
-            Overview of your product catalog.
+          <p className="mt-1 text-sm text-muted">
+            Overview of your store — catalog, inventory and customer leads.
           </p>
         </div>
         <Link
           href="/admin/products"
-          className="rounded-lg bg-accent hover:bg-accent-hover px-4 py-2 text-sm font-medium text-white transition"
+          className="rounded-lg bg-brand-gradient px-4 py-2 text-sm font-bold text-black transition hover:brightness-110"
         >
           Manage products
         </Link>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-        {stats.map((stat) => (
+      <div className="mb-10 grid grid-cols-2 gap-4 lg:grid-cols-4">
+        {stats.map((stat, i) => (
           <div
             key={stat.label}
-            className="rounded-xl border border-line bg-surface p-5"
+            className="animate-fade-up group rounded-2xl border border-line bg-surface p-5 transition-all duration-300 hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-lg hover:shadow-accent/5"
+            style={{ animationDelay: `${i * 80}ms` }}
           >
-            <div className="text-2xl mb-3">{stat.icon}</div>
-            <div className="text-2xl font-semibold">{stat.value}</div>
-            <div className="text-sm text-muted mt-1">{stat.label}</div>
+            <div className="text-sm text-muted">{stat.label}</div>
+            <div className="text-brand-gradient mt-2 text-3xl font-extrabold">
+              {stat.value}
+            </div>
+            <div className="mt-1 text-xs text-muted">{stat.sub}</div>
+            <div className="mt-3 h-1 w-8 rounded-full bg-brand-gradient opacity-40 transition-all duration-300 group-hover:w-16 group-hover:opacity-100" />
           </div>
         ))}
       </div>
 
-      <h2 className="text-lg font-semibold mb-4">Stock alerts</h2>
-      {lowStock.length === 0 && outOfStock.length === 0 ? (
-        <p className="text-sm text-muted">
-          All products are sufficiently stocked. 🎉
-        </p>
-      ) : (
-        <div className="rounded-xl border border-line bg-surface divide-y divide-line">
-          {[...outOfStock, ...lowStock].map((p) => (
-            <div
-              key={p.id}
-              className="flex items-center justify-between px-5 py-4"
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
+        {/* Recent leads */}
+        <section className="animate-fade-up" style={{ animationDelay: "200ms" }}>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-lg font-semibold">Latest customer leads</h2>
+            <Link
+              href="/admin/customers"
+              className="text-sm text-accent transition hover:underline"
             >
-              <div className="flex items-center gap-3">
-                <span className="text-2xl">{p.emoji}</span>
-                <div>
-                  <div className="font-medium">{p.name}</div>
-                  <div className="text-xs text-muted">{p.category}</div>
-                </div>
-              </div>
-              <span
-                className={`rounded-full px-3 py-1 text-xs font-medium ${
-                  p.stock === 0
-                    ? "bg-red-500/15 text-red-400"
-                    : "bg-amber-500/15 text-amber-400"
-                }`}
-              >
-                {p.stock === 0 ? "Out of stock" : `Low stock · ${p.stock} left`}
-              </span>
+              View all →
+            </Link>
+          </div>
+          {recentLeads.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-line bg-surface px-5 py-10 text-center text-sm text-muted">
+              No customer accounts yet. When someone registers in the shop,
+              their lead shows up here.
             </div>
-          ))}
-        </div>
-      )}
+          ) : (
+            <div className="divide-y divide-line rounded-2xl border border-line bg-surface">
+              {recentLeads.map((c, i) => (
+                <div
+                  key={c.id}
+                  className="animate-fade-up flex items-center gap-3 px-5 py-3.5"
+                  style={{ animationDelay: `${240 + i * 60}ms` }}
+                >
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-gradient text-sm font-extrabold text-black">
+                    {c.name.slice(0, 1).toUpperCase()}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-medium">{c.name}</div>
+                    <div className="truncate text-xs text-muted">{c.email}</div>
+                  </div>
+                  <span className="text-xs text-muted">
+                    {new Date(c.createdAt).toLocaleDateString(undefined, {
+                      day: "numeric",
+                      month: "short",
+                    })}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* Stock alerts */}
+        <section className="animate-fade-up" style={{ animationDelay: "260ms" }}>
+          <h2 className="mb-4 text-lg font-semibold">Stock alerts</h2>
+          {lowStock.length === 0 && outOfStock.length === 0 ? (
+            <p className="text-sm text-muted">
+              All products are sufficiently stocked. 🎉
+            </p>
+          ) : (
+            <div className="divide-y divide-line rounded-2xl border border-line bg-surface">
+              {[...outOfStock, ...lowStock].map((p, i) => (
+                <div
+                  key={p.id}
+                  className="animate-fade-up flex items-center justify-between px-5 py-3.5"
+                  style={{ animationDelay: `${300 + i * 60}ms` }}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="relative h-10 w-12 overflow-hidden rounded-md border border-line bg-surface-2">
+                      <Image
+                        src={p.image}
+                        alt={p.name}
+                        fill
+                        unoptimized
+                        className="object-cover"
+                      />
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium">{p.name}</div>
+                      <div className="text-xs text-muted">{p.category}</div>
+                    </div>
+                  </div>
+                  <span
+                    className={`rounded-full px-3 py-1 text-xs font-medium ${
+                      p.stock === 0
+                        ? "bg-danger/15 text-danger"
+                        : "bg-warning/15 text-warning"
+                    }`}
+                  >
+                    {p.stock === 0 ? "Out of stock" : `${p.stock} left`}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
     </div>
   );
 }

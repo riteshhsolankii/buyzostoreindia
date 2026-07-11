@@ -6,6 +6,7 @@ export type Product = {
   category: string;
   stock: number;
   emoji: string;
+  image: string;
   createdAt: string;
 };
 
@@ -21,6 +22,7 @@ const seed: Product[] = [
     category: "Audio",
     stock: 24,
     emoji: "🎧",
+    image: "/products/p-1.svg",
     createdAt: "2026-07-01T10:00:00.000Z",
   },
   {
@@ -32,6 +34,7 @@ const seed: Product[] = [
     category: "Peripherals",
     stock: 41,
     emoji: "⌨️",
+    image: "/products/p-2.svg",
     createdAt: "2026-07-02T10:00:00.000Z",
   },
   {
@@ -43,6 +46,7 @@ const seed: Product[] = [
     category: "Wearables",
     stock: 12,
     emoji: "⌚",
+    image: "/products/p-3.svg",
     createdAt: "2026-07-03T10:00:00.000Z",
   },
   {
@@ -54,6 +58,7 @@ const seed: Product[] = [
     category: "Peripherals",
     stock: 87,
     emoji: "🖱️",
+    image: "/products/p-4.svg",
     createdAt: "2026-07-04T10:00:00.000Z",
   },
   {
@@ -65,6 +70,7 @@ const seed: Product[] = [
     category: "Home",
     stock: 5,
     emoji: "💡",
+    image: "/products/p-5.svg",
     createdAt: "2026-07-05T10:00:00.000Z",
   },
   {
@@ -76,16 +82,25 @@ const seed: Product[] = [
     category: "Displays",
     stock: 0,
     emoji: "🖥️",
+    image: "/products/p-6.svg",
     createdAt: "2026-07-06T10:00:00.000Z",
   },
 ];
 
+export const FALLBACK_IMAGE = "/products/default.svg";
+
 // Persist the store across Next.js dev-server hot reloads.
 const globalStore = globalThis as unknown as { __buyzoProducts?: Product[] };
+
+const seedImages = new Map(seed.map((p) => [p.id, p.image]));
 
 function db(): Product[] {
   if (!globalStore.__buyzoProducts) {
     globalStore.__buyzoProducts = structuredClone(seed);
+  }
+  // Backfill products stored before the image field existed.
+  for (const p of globalStore.__buyzoProducts) {
+    if (!p.image) p.image = seedImages.get(p.id) ?? FALLBACK_IMAGE;
   }
   return globalStore.__buyzoProducts;
 }
