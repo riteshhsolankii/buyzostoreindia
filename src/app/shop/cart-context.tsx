@@ -7,7 +7,7 @@ import {
   useEffect,
   useState,
 } from "react";
-import type { Product } from "@/lib/products";
+import { FALLBACK_IMAGE, type Product } from "@/lib/products";
 
 export type CartItem = { product: Product; quantity: number };
 
@@ -32,7 +32,17 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setItems(JSON.parse(raw));
+      if (raw) {
+        // Backfill carts saved before the product image field existed.
+        const parsed = (JSON.parse(raw) as CartItem[]).map((item) => ({
+          ...item,
+          product: {
+            ...item.product,
+            image: item.product.image || FALLBACK_IMAGE,
+          },
+        }));
+        setItems(parsed);
+      }
     } catch {
       // ignore corrupted cart
     }
