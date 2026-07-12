@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { CartProvider } from "./cart-context";
+import { CustomerProvider } from "./customer-context";
+import { WishlistProvider } from "./wishlist-context";
 
 export const metadata: Metadata = {
   title: "Buyzo Shop",
@@ -10,5 +12,11 @@ export const metadata: Metadata = {
 export default function ShopLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
-  return <CartProvider>{children}</CartProvider>;
+  return (
+    <CustomerProvider>
+      <WishlistProvider>
+        <CartProvider>{children}</CartProvider>
+      </WishlistProvider>
+    </CustomerProvider>
+  );
 }

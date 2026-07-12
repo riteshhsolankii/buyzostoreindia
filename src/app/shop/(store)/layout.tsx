@@ -10,46 +10,46 @@ export default function StoreLayout({
     <div className="flex flex-1 flex-col">
       <SiteHeader />
       <main className="mx-auto w-full max-w-7xl flex-1 px-6 py-8">{children}</main>
-      <footer className="border-t border-line bg-[linear-gradient(135deg,#0f1d3c_0%,#173b78_100%)] text-white">
+      <footer className="border-t border-line bg-surface text-foreground">
         <div className="mx-auto grid max-w-7xl gap-8 px-6 py-12 lg:grid-cols-[1.1fr_0.7fr_0.7fr]">
           <div>
             <div className="flex items-center gap-3">
-              <span className="rounded-2xl bg-white/10 p-2">
+              <span className="rounded-2xl bg-surface-2 p-2">
                 <BuyzoMark size={32} />
               </span>
               <div>
                 <div className="text-xl font-extrabold leading-none">
-                  Buy<span className="text-accent-2">zo</span>
+                  Buy<span className="text-brand-gradient">zo</span>
                 </div>
-                <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-white/50">
-                  Smarter shopping starts here
+                <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted">
+                  Shop smart. Live better.
                 </div>
               </div>
             </div>
-            <p className="mt-5 max-w-md text-sm leading-7 text-white/70">
+            <p className="mt-5 max-w-md text-sm leading-7 text-muted">
               Curated electronics, premium wearables, and everyday essentials delivered with a calm and elevated shopping experience.
             </p>
           </div>
 
           <div>
-            <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-white/50">Shop</h3>
-            <div className="mt-4 flex flex-col gap-2 text-sm text-white/80">
-              <Link href="/shop" className="transition hover:text-white">Featured products</Link>
-              <Link href="/shop?cat=Wearables" className="transition hover:text-white">Wearables</Link>
-              <Link href="/shop?cat=Audio" className="transition hover:text-white">Audio</Link>
+            <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-muted">Shop</h3>
+            <div className="mt-4 flex flex-col gap-2 text-sm text-foreground/80">
+              <Link href="/shop" className="transition hover:text-accent">Featured products</Link>
+              <Link href="/shop?cat=Wearables" className="transition hover:text-accent">Wearables</Link>
+              <Link href="/shop?cat=Audio" className="transition hover:text-accent">Audio</Link>
             </div>
           </div>
 
           <div>
-            <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-white/50">Support</h3>
-            <div className="mt-4 flex flex-col gap-2 text-sm text-white/80">
-              <Link href="/shop/account" className="transition hover:text-white">My account</Link>
-              <Link href="/shop/cart" className="transition hover:text-white">Cart</Link>
-              <Link href="/shop" className="transition hover:text-white">Contact us</Link>
+            <h3 className="text-sm font-semibold uppercase tracking-[0.2em] text-muted">Support</h3>
+            <div className="mt-4 flex flex-col gap-2 text-sm text-foreground/80">
+              <Link href="/shop/account" className="transition hover:text-accent">My account</Link>
+              <Link href="/shop/wishlist" className="transition hover:text-accent">Wishlist</Link>
+              <Link href="/shop/cart" className="transition hover:text-accent">Cart</Link>
             </div>
           </div>
         </div>
-        <div className="border-t border-white/10 px-6 py-4 text-center text-sm text-white/50">
+        <div className="border-t border-line px-6 py-4 text-center text-sm text-muted">
           © 2026 Buyzo — demo storefront
         </div>
       </footer>

@@ -133,6 +133,19 @@ export function formatINR(value: number, decimals = 2): string {
   })}`;
 }
 
+export type Address = {
+  id: string;
+  label: string; // Home / Office / Other
+  name: string;
+  phone: string;
+  line1: string;
+  line2?: string;
+  city: string;
+  state: string;
+  pincode: string;
+  isDefault?: boolean;
+};
+
 export type Customer = {
   id: string;
   name: string;
@@ -140,9 +153,67 @@ export type Customer = {
   phone: string;
   passwordHash: string;
   createdAt: string;
+  /** Small data-URL image set from the profile page. */
+  avatar?: string;
+  addresses?: Address[];
 };
 
 export type CustomerPublic = Omit<Customer, "passwordHash">;
+
+// ---------------------------------------------------------------------------
+// Orders
+// ---------------------------------------------------------------------------
+
+export type OrderStatus =
+  | "placed"
+  | "accepted"
+  | "shipped"
+  | "delivered"
+  | "cancelled";
+
+/** A single line captured at the moment the order was placed. */
+export type OrderItem = {
+  productId: string;
+  name: string;
+  image: string;
+  price: number; // unit price in rupees, snapshotted
+  quantity: number;
+};
+
+export type Order = {
+  id: string;
+  customerId: string;
+  status: OrderStatus;
+  items: OrderItem[];
+  subtotal: number;
+  total: number;
+  address: Address;
+  note?: string;
+  /** Delivery window in days, set by the admin when accepting the order. */
+  deliveryDays?: number;
+  estimatedDelivery?: string;
+  placedAt: string;
+  acceptedAt?: string;
+  shippedAt?: string;
+  deliveredAt?: string;
+  cancelledAt?: string;
+};
+
+/** Ordered lifecycle stages used to render the tracking timeline. */
+export const ORDER_STAGES: { status: OrderStatus; label: string; emoji: string }[] = [
+  { status: "placed", label: "Order placed", emoji: "🧾" },
+  { status: "accepted", label: "Accepted", emoji: "✅" },
+  { status: "shipped", label: "Shipped", emoji: "🚚" },
+  { status: "delivered", label: "Delivered", emoji: "📦" },
+];
+
+export const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
+  placed: "Placed",
+  accepted: "Accepted",
+  shipped: "Shipped",
+  delivered: "Delivered",
+  cancelled: "Cancelled",
+};
 
 export type SentEmail = {
   to: string;

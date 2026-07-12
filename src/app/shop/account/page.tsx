@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import type { CustomerPublic } from "@/lib/customers";
 import { BuyzoMark } from "../site-header";
+import { useCustomer } from "../customer-context";
+import { ProfileView } from "./profile-view";
 
 type Mode = "signin" | "register";
 
@@ -45,8 +46,7 @@ function CheckDot({ ok }: { ok: boolean }) {
 }
 
 export default function AccountPage() {
-  const [customer, setCustomer] = useState<CustomerPublic | null>(null);
-  const [checking, setChecking] = useState(true);
+  const { customer, checking, setCustomer, signOut } = useCustomer();
   const [mode, setMode] = useState<Mode>("register");
   const [form, setForm] = useState({
     name: "",
@@ -70,14 +70,6 @@ export default function AccountPage() {
   const [otpError, setOtpError] = useState<string | null>(null);
   const [demoCode, setDemoCode] = useState<string | null>(null);
   const [resendIn, setResendIn] = useState(0);
-
-  useEffect(() => {
-    fetch("/api/customers/me")
-      .then(async (res) => {
-        if (res.ok) setCustomer(await res.json());
-      })
-      .finally(() => setChecking(false));
-  }, []);
 
   useEffect(() => {
     if (resendIn <= 0) return;
@@ -191,8 +183,7 @@ export default function AccountPage() {
   }
 
   async function handleLogout() {
-    await fetch("/api/customers/me", { method: "DELETE" });
-    setCustomer(null);
+    await signOut();
     setWelcome(false);
     setEmailSent(null);
     setForm({ name: "", email: "", phone: "", password: "" });
@@ -231,25 +222,12 @@ export default function AccountPage() {
       {checking ? (
         <div className="h-96 w-full max-w-md animate-pulse rounded-3xl border border-line bg-surface" />
       ) : customer ? (
-        /* ---------- Signed-in view ---------- */
-        <div className="animate-scale-in w-full max-w-lg overflow-hidden rounded-3xl border border-line bg-surface/80 shadow-2xl shadow-black/10 backdrop-blur">
-          <div className="bg-brand-gradient px-8 py-6 text-white">
-            <div className="flex items-center gap-4">
-              <span className="flex h-14 w-14 items-center justify-center rounded-full bg-accent text-xl font-extrabold text-white">
-                {customer.name.slice(0, 1).toUpperCase()}
-              </span>
-              <div>
-                <div className="text-lg font-extrabold leading-tight">
-                  {welcome ? `Welcome, ${customer.name}! 🎉` : customer.name}
-                </div>
-                <div className="text-sm font-medium text-white/70">
-                  Buyzo Member
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="space-y-4 px-8 py-6">
-            {welcome && emailSent !== null && (
+        /* ---------- Signed-in profile ---------- */
+        <ProfileView
+          customer={customer}
+          onLogout={handleLogout}
+          welcomeBanner={
+            welcome && emailSent !== null ? (
               <div className="animate-fade-in rounded-lg border border-accent/30 bg-accent/10 px-4 py-3 text-sm">
                 {emailSent ? (
                   <>📧 A welcome email is on its way to <b>{customer.email}</b>.</>
@@ -261,52 +239,9 @@ export default function AccountPage() {
                   </>
                 )}
               </div>
-            )}
-            <div className="animate-fade-up flex justify-between border-b border-line pb-3 text-sm" style={{ animationDelay: "60ms" }}>
-              <span className="text-muted">Email</span>
-              <span className="font-medium">{customer.email}</span>
-            </div>
-            <div className="animate-fade-up flex justify-between border-b border-line pb-3 text-sm" style={{ animationDelay: "120ms" }}>
-              <span className="text-muted">Phone</span>
-              <span className="font-medium">
-                {customer.phone ? (
-                  <>
-                    {customer.phone}{" "}
-                    <span className="ml-1 rounded-full bg-accent/15 px-2 py-0.5 text-[10px] font-bold text-accent">
-                      VERIFIED
-                    </span>
-                  </>
-                ) : (
-                  "—"
-                )}
-              </span>
-            </div>
-            <div className="animate-fade-up flex justify-between text-sm" style={{ animationDelay: "180ms" }}>
-              <span className="text-muted">Member since</span>
-              <span className="font-medium">
-                {new Date(customer.createdAt).toLocaleDateString(undefined, {
-                  day: "numeric",
-                  month: "short",
-                  year: "numeric",
-                })}
-              </span>
-            </div>
-            <div className="flex gap-3 pt-2">
-              <Link
-                href="/shop"
-                className="flex-1 rounded-lg bg-brand-gradient px-4 py-2.5 text-center text-sm font-bold text-white shadow-lg shadow-accent/20 transition hover:brightness-110"
-              >
-                Continue shopping
-              </Link>
-              <button
-                onClick={handleLogout}
-                className="rounded-lg border border-line px-4 py-2.5 text-sm text-muted transition hover:border-danger/50 hover:text-danger"
-              >
-                Log out
-              </button>
-            </div>
-          </div>
-        </div>
+            ) : undefined
+          }
+        />
       ) : (
         /* ---------- Auth view ---------- */
         <div className="w-full max-w-md">
@@ -317,7 +252,7 @@ export default function AccountPage() {
             <h1 className="text-2xl font-extrabold">
               {mode === "register" ? (
                 <>
-                  Join <span className="text-accent">Buy</span>
+                  Join <span className="text-foreground">Buy</span>
                   <span className="text-brand-gradient">zo</span> today
                 </>
               ) : (
@@ -325,7 +260,7 @@ export default function AccountPage() {
               )}
             </h1>
             <p className="text-muted mt-1 text-sm">
-              Shop More. Pay Less. Live Better.
+              Shop Smart. Live Better.
             </p>
           </div>
 
@@ -392,7 +327,7 @@ export default function AccountPage() {
                       placeholder="Enter your phone number"
                     />
                     {otpVerified ? (
-                      <span className="flex items-center gap-1.5 rounded-lg bg-accent/15 px-3 text-xs font-bold text-accent">
+                      <span className="flex items-center gap-1.5 rounded-full bg-accent/15 px-3 text-xs font-bold text-accent">
                         <CheckDot ok /> Verified
                       </span>
                     ) : (

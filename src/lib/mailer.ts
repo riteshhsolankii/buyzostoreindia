@@ -1,10 +1,20 @@
-import { getDb, saveDb } from "./db";
-import type { SentEmail } from "./types";
+import { getDatabase } from "./database";
 
-// Outbox persists in the project's JSON database so sent mail can be
-// inspected any time in data/buyzo-db.json.
-function outbox(): SentEmail[] {
-  return getDb().outbox;
+// Outbox persists in the SQLite database (email_outbox table) so sent mail can
+// be inspected any time.
+function recordOutbox(email: {
+  to: string;
+  subject: string;
+  text: string;
+  sentAt: string;
+  delivered: boolean;
+}): void {
+  getDatabase()
+    .prepare(
+      `INSERT INTO email_outbox (to_email, subject, text, sent_at, delivered)
+       VALUES (?, ?, ?, ?, ?)`
+    )
+    .run(email.to, email.subject, email.text, email.sentAt, email.delivered ? 1 : 0);
 }
 
 /**
@@ -39,8 +49,7 @@ async function sendMail(to: string, subject: string, text: string): Promise<bool
     console.log(`[buyzo-mail] demo mode — would send to ${to}\nSubject: ${subject}\n${text}`);
   }
 
-  outbox().unshift({ to, subject, text, sentAt: new Date().toISOString(), delivered });
-  saveDb();
+  recordOutbox({ to, subject, text, sentAt: new Date().toISOString(), delivered });
   return delivered;
 }
 

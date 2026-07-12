@@ -6,6 +6,10 @@ import { useEffect, useMemo, useState } from "react";
 import type { Product } from "@/lib/products";
 import { formatINR } from "@/lib/types";
 import { useCart } from "../cart-context";
+import { useCustomer } from "../customer-context";
+import { useWishlist } from "../wishlist-context";
+import { AuthModal } from "../auth-modal";
+import { HeartIcon } from "../site-header";
 
 export function ProductDetailView({ productId }: { productId: string }) {
   const [product, setProduct] = useState<Product | null>(null);
@@ -13,7 +17,10 @@ export function ProductDetailView({ productId }: { productId: string }) {
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
   const [selectedImage, setSelectedImage] = useState("");
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const { addItem } = useCart();
+  const { customer } = useCustomer();
+  const { has, toggle } = useWishlist();
 
   useEffect(() => {
     fetch(`/api/products/${productId}`).then(async (res) => {
@@ -66,10 +73,18 @@ export function ProductDetailView({ productId }: { productId: string }) {
   }
 
   function handleAdd() {
+    if (!product) return;
+    // The session lives in an httpOnly cookie — the provider asked the server.
+    if (!customer) {
+      setShowAuthModal(true);
+      return;
+    }
     addItem(product, quantity);
     setAdded(true);
     setTimeout(() => setAdded(false), 1500);
   }
+
+  const wished = has(product.id);
 
   return (
     <div>
@@ -79,7 +94,7 @@ export function ProductDetailView({ productId }: { productId: string }) {
 
       <div className="mt-6 grid grid-cols-1 gap-10 md:grid-cols-2">
         <div className="space-y-4">
-          <div className="animate-scale-in relative h-[420px] overflow-hidden rounded-3xl border border-line bg-[linear-gradient(135deg,#f7faff_0%,#eaf2ff_100%)] shadow-sm">
+          <div className="animate-scale-in relative h-[420px] overflow-hidden rounded-3xl border border-line bg-surface shadow-sm">
             <Image
               src={selectedImage || product.image}
               alt={product.name}
@@ -87,6 +102,16 @@ export function ProductDetailView({ productId }: { productId: string }) {
               unoptimized
               className="object-cover"
             />
+            <button
+              type="button"
+              onClick={() => toggle(product)}
+              className={`absolute right-4 top-4 rounded-full bg-black/70 p-2.5 backdrop-blur transition hover:scale-110 ${
+                wished ? "text-accent" : "text-white/80 hover:text-accent"
+              }`}
+              aria-label={wished ? "Remove from wishlist" : "Add to wishlist"}
+            >
+              <HeartIcon filled={wished} size={20} />
+            </button>
           </div>
 
           {galleryImages.length > 1 && (
@@ -148,7 +173,7 @@ export function ProductDetailView({ productId }: { productId: string }) {
               <button
                 onClick={handleAdd}
                 className={`flex-1 rounded-lg px-5 py-3 text-sm font-bold transition-all duration-200 ${
-                  added ? "bg-success/20 text-success" : "bg-brand-gradient text-white hover:brightness-110 active:scale-[0.98]"
+                  added ? "bg-success/20 text-success" : "bg-brand-gradient hover:brightness-110 active:scale-[0.98]"
                 }`}
               >
                 {added ? "Added to cart ✓" : "Add to cart"}
@@ -157,6 +182,8 @@ export function ProductDetailView({ productId }: { productId: string }) {
           )}
         </div>
       </div>
+
+      {showAuthModal && <AuthModal onClose={() => setShowAuthModal(false)} />}
     </div>
   );
 }

@@ -54,7 +54,7 @@ export default function CouponCreatePage() {
                 Use this coupon for a specific product. Search and select the product below.
               </p>
             </div>
-            <label className="flex items-center gap-2 rounded-full border border-line bg-white px-3 py-1.5 text-sm text-muted">
+            <label className="flex items-center gap-2 rounded-full border border-line bg-surface px-3 py-1.5 text-sm text-muted">
               <input type="checkbox" className="h-4 w-4 rounded border-line text-accent focus:ring-accent" />
               <span>Use for this product only</span>
             </label>
@@ -64,12 +64,12 @@ export default function CouponCreatePage() {
             <label className="block">
               <span className="mb-1 block text-sm font-medium text-muted">Search product</span>
               <input
-                className="w-full rounded-lg border border-line bg-white px-3.5 py-2.5 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
+                className="w-full rounded-lg border border-line bg-surface px-3.5 py-2.5 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
                 placeholder="Type product name, SKU or category"
               />
             </label>
 
-            <div className="rounded-lg border border-line bg-white p-3">
+            <div className="rounded-lg border border-line bg-surface p-3">
               <div className="flex items-center justify-between rounded-lg border border-dashed border-line px-3 py-2 text-sm text-muted">
                 <span>Select a product to make this coupon applicable</span>
                 <span className="font-semibold text-accent">Search</span>

@@ -40,7 +40,7 @@ function LoginForm() {
   return (
     <div className="animate-scale-in grid w-full max-w-4xl overflow-hidden rounded-3xl border border-line bg-surface/80 shadow-2xl shadow-black/10 backdrop-blur lg:grid-cols-2">
       {/* Brand panel */}
-      <div className="relative hidden flex-col justify-between overflow-hidden bg-brand-gradient p-10 text-white lg:flex">
+      <div className="relative hidden flex-col justify-between overflow-hidden bg-brand-gradient p-10 lg:flex">
         <div className="pointer-events-none absolute -bottom-24 -right-24 opacity-15">
           <BuyzoMark size={360} />
         </div>
@@ -49,13 +49,11 @@ function LoginForm() {
             <BuyzoMark size={44} />
           </span>
           <h2 className="mt-8 text-4xl font-extrabold leading-tight">
-            Shop More.
-            <br />
-            Pay Less.
+            Shop Smart.
             <br />
             Live Better.
           </h2>
-          <p className="mt-4 max-w-xs text-sm font-medium text-white/70">
+          <p className="mt-4 max-w-xs text-sm font-medium text-white/80">
             One dashboard to run your entire Buyzo store.
           </p>
           <ul className="mt-8 space-y-3 text-sm font-semibold">
@@ -69,7 +67,7 @@ function LoginForm() {
                 className="animate-slide-in flex items-center gap-3"
                 style={{ animationDelay: `${200 + i * 100}ms` }}
               >
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-accent text-white">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-accent">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden>
                     <path d="m5 12.5 4.5 4.5L19 7.5" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
@@ -79,7 +77,7 @@ function LoginForm() {
             ))}
           </ul>
         </div>
-        <p className="relative text-xs font-semibold text-white/60">
+        <p className="relative text-xs font-semibold text-white/70">
           © 2026 Buyzo
         </p>
       </div>
@@ -91,7 +89,7 @@ function LoginForm() {
             <BuyzoMark size={52} />
           </span>
           <h1 className="text-2xl font-extrabold">
-            <span className="text-accent">Buy</span>
+            <span className="text-foreground">Buy</span>
             <span className="text-brand-gradient">zo</span>{" "}
             <span className="text-accent">Admin</span>
           </h1>

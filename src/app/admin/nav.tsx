@@ -39,6 +39,20 @@ function UsersIcon() {
   );
 }
 
+function BagIcon() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M6 8h12l-1 11a2 2 0 0 1-2 1.8H9A2 2 0 0 1 7 19L6 8z"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinejoin="round"
+      />
+      <path d="M9 8V6.5a3 3 0 0 1 6 0V8" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 function TagIcon() {
   return (
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -55,6 +69,7 @@ function TagIcon() {
 
 const links = [
   { href: "/admin", label: "Dashboard", icon: DashboardIcon },
+  { href: "/admin/orders", label: "Orders", icon: BagIcon },
   { href: "/admin/products", label: "Products", icon: BoxIcon },
   { href: "/admin/categories", label: "Categories", icon: TagIcon },
   { href: "/admin/coupons/create", label: "Coupon Create", icon: TagIcon },

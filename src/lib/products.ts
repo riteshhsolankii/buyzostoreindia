@@ -1,8 +1,22 @@
-import { getDb, saveDb } from "./db";
-import { FALLBACK_IMAGE, type Product, type ProductInput } from "./types";
+import { getDatabase, transaction } from "./database";
+import {
+  FALLBACK_IMAGE,
+  type Product,
+  type ProductExtras,
+  type ProductStatus,
+  type ProductInput,
+} from "./types";
 
 export type { Product, ProductInput } from "./types";
 export { FALLBACK_IMAGE } from "./types";
+
+const CATALOG_SEED_MARKER = "catalog_seeded_v1";
+const STATUSES = new Set<ProductStatus>([
+  "draft",
+  "active",
+  "out-of-stock",
+  "archived",
+]);
 
 const seed: Product[] = [
   {
@@ -79,68 +93,257 @@ const seed: Product[] = [
   },
 ];
 
-const seedImages = new Map(seed.map((p) => [p.id, p.image]));
+// Shape of a joined products row as it comes back from SQLite.
+type ProductRow = {
+  id: string;
+  name: string;
+  description: string;
+  price_cents: number;
+  category_name: string;
+  stock: number;
+  emoji: string;
+  image: string;
+  status: string;
+  extras_json: string | null;
+  created_at: string;
+};
 
-function db(): Product[] {
-  const store = getDb();
-  let dirty = false;
-
-  // First ever run: seed the catalog into the database file.
-  if (!store.seeded) {
-    if (store.products.length === 0) {
-      store.products = structuredClone(seed);
-    }
-    store.seeded = true;
-    dirty = true;
-  }
-
-  // Backfill products stored before the image field existed.
-  for (const p of store.products) {
-    if (!p.image) {
-      p.image = seedImages.get(p.id) ?? FALLBACK_IMAGE;
-      dirty = true;
-    }
-  }
-
-  if (dirty) saveDb();
-  return store.products;
+function toProduct(row: ProductRow): Product {
+  const extras = parseExtras(row.extras_json, row.status);
+  const product: Product = {
+    id: row.id,
+    name: row.name,
+    description: row.description,
+    price: row.price_cents / 100,
+    category: row.category_name,
+    stock: row.stock,
+    emoji: row.emoji,
+    image: row.image || FALLBACK_IMAGE,
+    createdAt: row.created_at,
+  };
+  if (Object.keys(extras).length > 0) product.extras = extras;
+  return product;
 }
 
+function parseExtras(json: string | null, status: string): ProductExtras {
+  let extras: ProductExtras = {};
+  if (json) {
+    try {
+      const parsed = JSON.parse(json);
+      if (parsed && typeof parsed === "object") extras = parsed as ProductExtras;
+    } catch {
+      extras = {};
+    }
+  }
+  // The status column is the source of truth; mirror it into extras so the
+  // admin form (which reads extras.status) always sees the stored value.
+  if (STATUSES.has(status as ProductStatus)) {
+    extras.status = status as ProductStatus;
+  }
+  return extras;
+}
+
+function priceCents(value: number): number {
+  if (!Number.isFinite(value) || value < 0) return 0;
+  return Math.round(value * 100);
+}
+
+function optionalText(value: unknown): string | null {
+  const text = typeof value === "string" ? value.trim() : "";
+  return text || null;
+}
+
+/** Resolve a category name to its id, creating the category if needed. */
+function ensureCategoryId(name: string): string {
+  const db = getDatabase();
+  const clean = name.trim() || "General";
+  const nameKey = clean.toLocaleLowerCase("en-US");
+  const existing = db
+    .prepare("SELECT id FROM categories WHERE name_key = ?")
+    .get(nameKey) as { id: string } | undefined;
+  if (existing) return existing.id;
+
+  const now = new Date().toISOString();
+  const position =
+    (
+      db.prepare("SELECT COALESCE(MAX(position), -1) + 1 AS next FROM categories").get() as {
+        next: number;
+      }
+    ).next;
+  const id = `cat-${crypto.randomUUID().slice(0, 8)}`;
+  db.prepare(
+    `INSERT INTO categories (id, name, name_key, position, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?)`
+  ).run(id, clean, nameKey, position, now, now);
+  return id;
+}
+
+// Seed the demo catalog on a fresh database. Skipped if the legacy import
+// already ran (it sets the same marker) or the catalog was seeded before.
+function ensureSeeded(): void {
+  const db = getDatabase();
+  const marked = db
+    .prepare("SELECT 1 FROM app_meta WHERE key = ?")
+    .get(CATALOG_SEED_MARKER);
+  if (marked) return;
+
+  transaction(() => {
+    const now = new Date().toISOString();
+    const hasProducts = (
+      db.prepare("SELECT COUNT(*) AS count FROM products").get() as {
+        count: number;
+      }
+    ).count;
+    if (hasProducts === 0) {
+      const insert = db.prepare(
+        `INSERT INTO products (
+           id, name, description, price_cents, category_id, stock, emoji, image,
+           slug, brand, sku, status, extras_json, display_order, created_at, updated_at
+         ) VALUES (
+           @id, @name, @description, @priceCents, @categoryId, @stock, @emoji, @image,
+           NULL, NULL, NULL, 'active', NULL, @displayOrder, @createdAt, @createdAt
+         )`
+      );
+      seed.forEach((product, displayOrder) => {
+        insert.run({
+          id: product.id,
+          name: product.name,
+          description: product.description,
+          priceCents: priceCents(product.price),
+          categoryId: ensureCategoryId(product.category),
+          stock: product.stock,
+          emoji: product.emoji,
+          image: product.image,
+          displayOrder,
+          createdAt: product.createdAt,
+        });
+      });
+    }
+    db.prepare(
+      `INSERT INTO app_meta (key, value, updated_at) VALUES (?, 'demo-seed', ?)
+       ON CONFLICT(key) DO NOTHING`
+    ).run(CATALOG_SEED_MARKER, now);
+  });
+}
+
+const SELECT_PRODUCT = `
+  SELECT p.id, p.name, p.description, p.price_cents, p.stock, p.emoji, p.image,
+         p.status, p.extras_json, p.created_at, c.name AS category_name
+  FROM products p
+  JOIN categories c ON c.id = p.category_id
+`;
+
 export function listProducts(): Product[] {
-  return db();
+  ensureSeeded();
+  const rows = getDatabase()
+    .prepare(`${SELECT_PRODUCT} ORDER BY p.display_order ASC, p.created_at DESC`)
+    .all() as ProductRow[];
+  return rows.map(toProduct);
 }
 
 export function getProduct(id: string): Product | undefined {
-  return db().find((p) => p.id === id);
+  ensureSeeded();
+  const row = getDatabase()
+    .prepare(`${SELECT_PRODUCT} WHERE p.id = ?`)
+    .get(id) as ProductRow | undefined;
+  return row ? toProduct(row) : undefined;
 }
 
 export function createProduct(input: ProductInput): Product {
-  const product: Product = {
-    ...input,
-    id: `p-${crypto.randomUUID().slice(0, 8)}`,
-    createdAt: new Date().toISOString(),
-  };
-  db().unshift(product);
-  saveDb();
-  return product;
+  ensureSeeded();
+  const db = getDatabase();
+  const id = `p-${crypto.randomUUID().slice(0, 8)}`;
+  const createdAt = new Date().toISOString();
+  const extras = input.extras ?? {};
+  const status = STATUSES.has(extras.status as ProductStatus)
+    ? (extras.status as ProductStatus)
+    : "active";
+
+  transaction(() => {
+    const categoryId = ensureCategoryId(input.category);
+    // New products sort to the front (mirrors the old unshift behaviour).
+    const topOrder =
+      (
+        db.prepare("SELECT COALESCE(MIN(display_order), 0) - 1 AS top FROM products").get() as {
+          top: number;
+        }
+      ).top;
+    db.prepare(
+      `INSERT INTO products (
+         id, name, description, price_cents, category_id, stock, emoji, image,
+         slug, brand, sku, status, extras_json, display_order, created_at, updated_at
+       ) VALUES (
+         @id, @name, @description, @priceCents, @categoryId, @stock, @emoji, @image,
+         @slug, @brand, @sku, @status, @extrasJson, @displayOrder, @createdAt, @createdAt
+       )`
+    ).run({
+      id,
+      name: input.name,
+      description: input.description,
+      priceCents: priceCents(input.price),
+      categoryId,
+      stock: Math.max(0, Math.trunc(input.stock)),
+      emoji: input.emoji || "📦",
+      image: input.image || FALLBACK_IMAGE,
+      slug: optionalText(extras.slug),
+      brand: optionalText(extras.brand),
+      sku: optionalText(extras.sku),
+      status,
+      extrasJson: Object.keys(extras).length > 0 ? JSON.stringify(extras) : null,
+      displayOrder: topOrder,
+      createdAt,
+    });
+  });
+
+  return getProduct(id)!;
 }
 
 export function updateProduct(
   id: string,
   input: Partial<ProductInput>
 ): Product | undefined {
-  const product = getProduct(id);
-  if (!product) return undefined;
-  Object.assign(product, input);
-  saveDb();
-  return product;
+  const existing = getProduct(id);
+  if (!existing) return undefined;
+
+  // Merge onto the current product so partial patches keep prior values.
+  const merged: Product = { ...existing, ...input };
+  const extras = input.extras ?? existing.extras ?? {};
+  const status = STATUSES.has(extras.status as ProductStatus)
+    ? (extras.status as ProductStatus)
+    : "active";
+  const db = getDatabase();
+
+  transaction(() => {
+    const categoryId = ensureCategoryId(merged.category);
+    db.prepare(
+      `UPDATE products SET
+         name = @name, description = @description, price_cents = @priceCents,
+         category_id = @categoryId, stock = @stock, emoji = @emoji, image = @image,
+         slug = @slug, brand = @brand, sku = @sku, status = @status,
+         extras_json = @extrasJson, updated_at = @updatedAt
+       WHERE id = @id`
+    ).run({
+      id,
+      name: merged.name,
+      description: merged.description,
+      priceCents: priceCents(merged.price),
+      categoryId,
+      stock: Math.max(0, Math.trunc(merged.stock)),
+      emoji: merged.emoji || "📦",
+      image: merged.image || FALLBACK_IMAGE,
+      slug: optionalText(extras.slug),
+      brand: optionalText(extras.brand),
+      sku: optionalText(extras.sku),
+      status,
+      extrasJson: Object.keys(extras).length > 0 ? JSON.stringify(extras) : null,
+      updatedAt: new Date().toISOString(),
+    });
+  });
+
+  return getProduct(id);
 }
 
 export function deleteProduct(id: string): boolean {
-  const products = db();
-  const index = products.findIndex((p) => p.id === id);
-  if (index === -1) return false;
-  products.splice(index, 1);
-  saveDb();
-  return true;
+  const info = getDatabase().prepare("DELETE FROM products WHERE id = ?").run(id);
+  return info.changes > 0;
 }

@@ -3,13 +3,13 @@
 :root {
   --background: #ffffff;
   --surface: #ffffff;
-  --surface-2: #f4f6fa;
-  --border: #e5e8f0;
-  --foreground: #1a2244;
+  --surface-2: #f6f6f8;
+  --border: #e8e8ee;
+  --foreground: #1b2337;
   --muted: #64708a;
-  --accent: #2e6ff2;
-  --accent-2: #2e6ff2;
-  --accent-hover: #225edb;
+  --accent: #f4711c;
+  --accent-2: #f4711c;
+  --accent-hover: #dd5f0e;
   --success: #16a34a;
   --danger: #dc2626;
   --warning: #d97706;
@@ -90,10 +90,10 @@
   @keyframes glow {
     0%,
     100% {
-      box-shadow: 0 0 24px 0 rgba(46, 111, 242, 0.2);
+      box-shadow: 0 0 24px 0 rgba(244, 113, 28, 0.2);
     }
     50% {
-      box-shadow: 0 0 44px 6px rgba(46, 111, 242, 0.38);
+      box-shadow: 0 0 44px 6px rgba(244, 113, 28, 0.38);
     }
   }
 }
@@ -113,11 +113,14 @@ body {
   color: #ffffff;
 }
 
-/* Brand helpers — single blue tone */
+/* Brand helpers — logo orange on white */
 .text-brand-gradient {
-  color: #2e6ff2;
+  color: #f4711c;
 }
 
 .bg-brand-gradient {
-  background-color: #2e6ff2;
+  background-color: #f4711c;
+  /* Brand buttons always read white regardless of stray text utilities —
+     this unlayered rule beats Tailwind's layered ones. */
+  color: #ffffff;
 }
