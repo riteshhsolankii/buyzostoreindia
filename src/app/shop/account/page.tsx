@@ -36,7 +36,7 @@ function CheckDot({ ok }: { ok: boolean }) {
   return (
     <span
       className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[9px] font-bold transition-colors duration-200 ${
-        ok ? "bg-accent text-black" : "bg-surface-2 text-muted"
+        ok ? "bg-accent text-white" : "bg-surface-2 text-muted"
       }`}
     >
       ✓
@@ -232,17 +232,17 @@ export default function AccountPage() {
         <div className="h-96 w-full max-w-md animate-pulse rounded-3xl border border-line bg-surface" />
       ) : customer ? (
         /* ---------- Signed-in view ---------- */
-        <div className="animate-scale-in w-full max-w-lg overflow-hidden rounded-3xl border border-line bg-surface/80 shadow-2xl shadow-black/60 backdrop-blur">
-          <div className="bg-brand-gradient px-8 py-6 text-black">
+        <div className="animate-scale-in w-full max-w-lg overflow-hidden rounded-3xl border border-line bg-surface/80 shadow-2xl shadow-black/10 backdrop-blur">
+          <div className="bg-brand-gradient px-8 py-6 text-white">
             <div className="flex items-center gap-4">
-              <span className="flex h-14 w-14 items-center justify-center rounded-full bg-black text-xl font-extrabold text-accent">
+              <span className="flex h-14 w-14 items-center justify-center rounded-full bg-accent text-xl font-extrabold text-white">
                 {customer.name.slice(0, 1).toUpperCase()}
               </span>
               <div>
                 <div className="text-lg font-extrabold leading-tight">
                   {welcome ? `Welcome, ${customer.name}! 🎉` : customer.name}
                 </div>
-                <div className="text-sm font-medium text-black/70">
+                <div className="text-sm font-medium text-white/70">
                   Buyzo Member
                 </div>
               </div>
@@ -294,7 +294,7 @@ export default function AccountPage() {
             <div className="flex gap-3 pt-2">
               <Link
                 href="/shop"
-                className="flex-1 rounded-lg bg-brand-gradient px-4 py-2.5 text-center text-sm font-bold text-black shadow-lg shadow-accent/20 transition hover:brightness-110"
+                className="flex-1 rounded-lg bg-brand-gradient px-4 py-2.5 text-center text-sm font-bold text-white shadow-lg shadow-accent/20 transition hover:brightness-110"
               >
                 Continue shopping
               </Link>
@@ -317,7 +317,7 @@ export default function AccountPage() {
             <h1 className="text-2xl font-extrabold">
               {mode === "register" ? (
                 <>
-                  Join <span className="text-white">Buy</span>
+                  Join <span className="text-accent">Buy</span>
                   <span className="text-brand-gradient">zo</span> today
                 </>
               ) : (
@@ -330,7 +330,7 @@ export default function AccountPage() {
           </div>
 
           <div
-            className="animate-fade-up rounded-3xl border border-line bg-surface/80 p-6 shadow-2xl shadow-black/60 backdrop-blur sm:p-8"
+            className="animate-fade-up rounded-3xl border border-line bg-surface/80 p-6 shadow-2xl shadow-black/10 backdrop-blur sm:p-8"
             style={{ animationDelay: "100ms" }}
           >
             {/* Tabs */}
@@ -345,7 +345,7 @@ export default function AccountPage() {
                   }}
                   className={`rounded-md py-2 transition-all duration-200 ${
                     mode === m
-                      ? "bg-brand-gradient text-black shadow"
+                      ? "bg-brand-gradient text-white shadow"
                       : "text-muted hover:text-foreground"
                   }`}
                 >
@@ -435,7 +435,7 @@ export default function AccountPage() {
                           type="button"
                           onClick={handleVerifyOtp}
                           disabled={otpCode.length !== 6 || otpBusy}
-                          className="shrink-0 rounded-lg bg-brand-gradient px-4 text-xs font-bold text-black transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
+                          className="shrink-0 rounded-lg bg-brand-gradient px-4 text-xs font-bold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
                         >
                           {otpBusy ? "Checking…" : "Verify"}
                         </button>
@@ -531,7 +531,7 @@ export default function AccountPage() {
               <button
                 type="submit"
                 disabled={submitting || (mode === "register" && !canRegister)}
-                className="w-full rounded-lg bg-brand-gradient px-4 py-3 text-sm font-extrabold text-black shadow-lg shadow-accent/25 transition hover:shadow-accent/40 hover:brightness-110 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
+                className="w-full rounded-lg bg-brand-gradient px-4 py-3 text-sm font-extrabold text-white shadow-lg shadow-accent/25 transition hover:shadow-accent/40 hover:brightness-110 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {submitting
                   ? "Please wait…"

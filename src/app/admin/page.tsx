@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { listProducts } from "@/lib/products";
 import { listCustomers } from "@/lib/customers";
+import { formatINR } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -22,9 +23,7 @@ export default function AdminDashboard() {
     },
     {
       label: "Inventory value",
-      value: `$${inventoryValue.toLocaleString(undefined, {
-        maximumFractionDigits: 0,
-      })}`,
+      value: formatINR(inventoryValue, 0),
       sub: "across the catalog",
     },
     {
@@ -40,7 +39,7 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <div className="max-w-5xl">
+    <div className="w-full">
       <div className="animate-fade-up mb-8 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">Dashboard</h1>
@@ -50,7 +49,7 @@ export default function AdminDashboard() {
         </div>
         <Link
           href="/admin/products"
-          className="rounded-lg bg-brand-gradient px-4 py-2 text-sm font-bold text-black transition hover:brightness-110"
+          className="rounded-lg bg-brand-gradient px-4 py-2 text-sm font-bold text-white transition hover:brightness-110"
         >
           Manage products
         </Link>
@@ -98,7 +97,7 @@ export default function AdminDashboard() {
                   className="animate-fade-up flex items-center gap-3 px-5 py-3.5"
                   style={{ animationDelay: `${240 + i * 60}ms` }}
                 >
-                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-gradient text-sm font-extrabold text-black">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-gradient text-sm font-extrabold text-white">
                     {c.name.slice(0, 1).toUpperCase()}
                   </span>
                   <div className="min-w-0 flex-1">

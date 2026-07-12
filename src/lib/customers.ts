@@ -1,27 +1,15 @@
+import { getDb, saveDb } from "./db";
+import type { Customer, CustomerPublic } from "./types";
+
+export type { Customer, CustomerPublic } from "./types";
+
 const SECRET = "buyzo-customer-secret-v1";
 
 export const CUSTOMER_COOKIE = "buyzo_customer_session";
 export const CUSTOMER_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
 
-export type Customer = {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  passwordHash: string;
-  createdAt: string;
-};
-
-export type CustomerPublic = Omit<Customer, "passwordHash">;
-
-// Persist the store across Next.js dev-server hot reloads.
-const globalStore = globalThis as unknown as { __buyzoCustomers?: Customer[] };
-
 function db(): Customer[] {
-  if (!globalStore.__buyzoCustomers) {
-    globalStore.__buyzoCustomers = [];
-  }
-  return globalStore.__buyzoCustomers;
+  return getDb().customers;
 }
 
 async function sha256(value: string): Promise<string> {
@@ -66,6 +54,7 @@ export async function createCustomer(input: {
     createdAt: new Date().toISOString(),
   };
   db().unshift(customer);
+  saveDb();
   return customer;
 }
 

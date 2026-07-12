@@ -38,14 +38,14 @@ function LoginForm() {
   }
 
   return (
-    <div className="animate-scale-in grid w-full max-w-4xl overflow-hidden rounded-3xl border border-line bg-surface/80 shadow-2xl shadow-black/60 backdrop-blur lg:grid-cols-2">
+    <div className="animate-scale-in grid w-full max-w-4xl overflow-hidden rounded-3xl border border-line bg-surface/80 shadow-2xl shadow-black/10 backdrop-blur lg:grid-cols-2">
       {/* Brand panel */}
-      <div className="relative hidden flex-col justify-between overflow-hidden bg-brand-gradient p-10 text-black lg:flex">
+      <div className="relative hidden flex-col justify-between overflow-hidden bg-brand-gradient p-10 text-white lg:flex">
         <div className="pointer-events-none absolute -bottom-24 -right-24 opacity-15">
           <BuyzoMark size={360} />
         </div>
         <div className="relative">
-          <span className="inline-flex items-center justify-center rounded-2xl bg-black p-3 shadow-lg shadow-black/20">
+          <span className="inline-flex items-center justify-center rounded-2xl bg-white p-3 shadow-lg shadow-black/20">
             <BuyzoMark size={44} />
           </span>
           <h2 className="mt-8 text-4xl font-extrabold leading-tight">
@@ -55,7 +55,7 @@ function LoginForm() {
             <br />
             Live Better.
           </h2>
-          <p className="mt-4 max-w-xs text-sm font-medium text-black/70">
+          <p className="mt-4 max-w-xs text-sm font-medium text-white/70">
             One dashboard to run your entire Buyzo store.
           </p>
           <ul className="mt-8 space-y-3 text-sm font-semibold">
@@ -69,7 +69,7 @@ function LoginForm() {
                 className="animate-slide-in flex items-center gap-3"
                 style={{ animationDelay: `${200 + i * 100}ms` }}
               >
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-black text-accent">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-accent text-white">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden>
                     <path d="m5 12.5 4.5 4.5L19 7.5" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
@@ -79,7 +79,7 @@ function LoginForm() {
             ))}
           </ul>
         </div>
-        <p className="relative text-xs font-semibold text-black/60">
+        <p className="relative text-xs font-semibold text-white/60">
           © 2026 Buyzo
         </p>
       </div>
@@ -91,9 +91,9 @@ function LoginForm() {
             <BuyzoMark size={52} />
           </span>
           <h1 className="text-2xl font-extrabold">
-            <span className="text-white">Buy</span>
+            <span className="text-accent">Buy</span>
             <span className="text-brand-gradient">zo</span>{" "}
-            <span className="text-white">Admin</span>
+            <span className="text-accent">Admin</span>
           </h1>
           <p className="mt-1.5 text-sm text-muted">
             Sign in to manage the catalog and customer leads.
@@ -110,7 +110,7 @@ function LoginForm() {
               autoComplete="username"
               required
               className={inputClass}
-              placeholder="you@example.com"
+              placeholder="Enter your email address"
             />
           </label>
           <label className="block">
@@ -122,14 +122,14 @@ function LoginForm() {
               autoComplete="current-password"
               required
               className={inputClass}
-              placeholder="••••••••"
+              placeholder="Enter your password"
             />
           </label>
           {error && <p className="animate-fade-in text-sm text-danger">{error}</p>}
           <button
             type="submit"
             disabled={submitting}
-            className="w-full rounded-lg bg-brand-gradient px-4 py-3 text-sm font-extrabold text-black shadow-lg shadow-accent/25 transition hover:shadow-accent/40 hover:brightness-110 active:scale-[0.99] disabled:opacity-60"
+            className="w-full rounded-lg bg-brand-gradient px-4 py-3 text-sm font-extrabold text-white shadow-lg shadow-accent/25 transition hover:shadow-accent/40 hover:brightness-110 active:scale-[0.99] disabled:opacity-60"
           >
             {submitting ? "Signing in…" : "Sign in to dashboard"}
           </button>

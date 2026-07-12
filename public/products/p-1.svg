@@ -1,18 +1,18 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 450">
   <defs>
     <radialGradient id="glow" cx="50%" cy="45%" r="60%">
-      <stop offset="0%" stop-color="#b8dd26" stop-opacity="0.22"/>
-      <stop offset="100%" stop-color="#b8dd26" stop-opacity="0"/>
+      <stop offset="0%" stop-color="#a428d8" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#a428d8" stop-opacity="0"/>
     </radialGradient>
     <linearGradient id="lime" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#e9ef35"/>
-      <stop offset="100%" stop-color="#8cc414"/>
+      <stop offset="0%" stop-color="#2e6ff2"/>
+      <stop offset="100%" stop-color="#ef2f8f"/>
     </linearGradient>
   </defs>
-  <rect width="600" height="450" fill="#101010"/>
+  <rect width="600" height="450" fill="#f5f6fb"/>
   <rect width="600" height="450" fill="url(#glow)"/>
-  <circle cx="300" cy="225" r="150" fill="none" stroke="#222" stroke-width="1.5"/>
-  <circle cx="300" cy="225" r="195" fill="none" stroke="#1a1a1a" stroke-width="1.5"/>
+  <circle cx="300" cy="225" r="150" fill="none" stroke="#e2e6f0" stroke-width="1.5"/>
+  <circle cx="300" cy="225" r="195" fill="none" stroke="#e6e9f2" stroke-width="1.5"/>
   <!-- headband -->
   <path d="M180 250 v-30 a120 120 0 0 1 240 0 v30" fill="none" stroke="url(#lime)" stroke-width="18" stroke-linecap="round"/>
   <path d="M180 250 v-30 a120 120 0 0 1 240 0 v30" fill="none" stroke="#0a0a0a" stroke-width="6" stroke-linecap="round" opacity="0.25"/>
@@ -23,7 +23,7 @@
   <rect x="392" y="240" width="58" height="92" rx="26" fill="#1d1d1d" stroke="#333" stroke-width="2"/>
   <rect x="404" y="252" width="34" height="68" rx="16" fill="url(#lime)"/>
   <!-- sparkles -->
-  <circle cx="452" cy="140" r="5" fill="#e9ef35"/>
-  <circle cx="140" cy="170" r="3.5" fill="#8cc414"/>
-  <circle cx="470" cy="330" r="3" fill="#b8dd26" opacity="0.7"/>
+  <circle cx="452" cy="140" r="5" fill="#2e6ff2"/>
+  <circle cx="140" cy="170" r="3.5" fill="#ef2f8f"/>
+  <circle cx="470" cy="330" r="3" fill="#a428d8" opacity="0.7"/>
 </svg>

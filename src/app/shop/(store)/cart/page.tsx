@@ -3,10 +3,11 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
+import { formatINR } from "@/lib/types";
 import { useCart } from "../../cart-context";
 
 const ctaClass =
-  "rounded-lg bg-brand-gradient px-6 py-2.5 text-sm font-bold text-black transition hover:brightness-110";
+  "rounded-lg bg-brand-gradient px-6 py-2.5 text-sm font-bold text-white transition hover:brightness-110";
 
 export default function CartPage() {
   const { items, total, setQuantity, removeItem, clear } = useCart();
@@ -76,7 +77,7 @@ export default function CartPage() {
                 {product.name}
               </Link>
               <div className="text-sm text-muted">
-                ${product.price.toFixed(2)} each
+                {formatINR(product.price)} each
               </div>
             </div>
             <div className="flex items-center rounded-lg border border-line bg-surface-2">
@@ -94,8 +95,8 @@ export default function CartPage() {
                 +
               </button>
             </div>
-            <div className="w-20 text-right font-semibold">
-              ${(product.price * quantity).toFixed(2)}
+            <div className="w-24 text-right font-semibold">
+              {formatINR(product.price * quantity)}
             </div>
             <button
               onClick={() => removeItem(product.id)}
@@ -111,7 +112,7 @@ export default function CartPage() {
       <div className="mt-6 flex items-center justify-between rounded-2xl border border-accent/30 bg-surface px-5 py-4">
         <span className="text-muted">Total</span>
         <span className="text-brand-gradient text-2xl font-extrabold">
-          ${total.toFixed(2)}
+          {formatINR(total)}
         </span>
       </div>
 

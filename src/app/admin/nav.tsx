@@ -39,9 +39,25 @@ function UsersIcon() {
   );
 }
 
+function TagIcon() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M3.5 11V5a1.5 1.5 0 0 1 1.5-1.5h6l9.3 9.3a1.5 1.5 0 0 1 0 2.1l-6 6a1.5 1.5 0 0 1-2.1 0L3.5 11z"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinejoin="round"
+      />
+      <circle cx="8.5" cy="8.5" r="1.4" fill="currentColor" />
+    </svg>
+  );
+}
+
 const links = [
   { href: "/admin", label: "Dashboard", icon: DashboardIcon },
   { href: "/admin/products", label: "Products", icon: BoxIcon },
+  { href: "/admin/categories", label: "Categories", icon: TagIcon },
+  { href: "/admin/coupons/create", label: "Coupon Create", icon: TagIcon },
   { href: "/admin/customers", label: "Customers", icon: UsersIcon },
 ];
 

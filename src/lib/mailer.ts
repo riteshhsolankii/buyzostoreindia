@@ -1,19 +1,10 @@
-type SentEmail = {
-  to: string;
-  subject: string;
-  text: string;
-  sentAt: string;
-  delivered: boolean;
-};
+import { getDb, saveDb } from "./db";
+import type { SentEmail } from "./types";
 
-// Outbox persists across hot reloads so "sent" mail can be inspected in dev.
-const globalStore = globalThis as unknown as { __buyzoOutbox?: SentEmail[] };
-
+// Outbox persists in the project's JSON database so sent mail can be
+// inspected any time in data/buyzo-db.json.
 function outbox(): SentEmail[] {
-  if (!globalStore.__buyzoOutbox) {
-    globalStore.__buyzoOutbox = [];
-  }
-  return globalStore.__buyzoOutbox;
+  return getDb().outbox;
 }
 
 /**
@@ -49,6 +40,7 @@ async function sendMail(to: string, subject: string, text: string): Promise<bool
   }
 
   outbox().unshift({ to, subject, text, sentAt: new Date().toISOString(), delivered });
+  saveDb();
   return delivered;
 }
 

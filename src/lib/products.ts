@@ -1,16 +1,8 @@
-export type Product = {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  category: string;
-  stock: number;
-  emoji: string;
-  image: string;
-  createdAt: string;
-};
+import { getDb, saveDb } from "./db";
+import { FALLBACK_IMAGE, type Product, type ProductInput } from "./types";
 
-export type ProductInput = Omit<Product, "id" | "createdAt">;
+export type { Product, ProductInput } from "./types";
+export { FALLBACK_IMAGE } from "./types";
 
 const seed: Product[] = [
   {
@@ -87,22 +79,31 @@ const seed: Product[] = [
   },
 ];
 
-export const FALLBACK_IMAGE = "/products/default.svg";
-
-// Persist the store across Next.js dev-server hot reloads.
-const globalStore = globalThis as unknown as { __buyzoProducts?: Product[] };
-
 const seedImages = new Map(seed.map((p) => [p.id, p.image]));
 
 function db(): Product[] {
-  if (!globalStore.__buyzoProducts) {
-    globalStore.__buyzoProducts = structuredClone(seed);
+  const store = getDb();
+  let dirty = false;
+
+  // First ever run: seed the catalog into the database file.
+  if (!store.seeded) {
+    if (store.products.length === 0) {
+      store.products = structuredClone(seed);
+    }
+    store.seeded = true;
+    dirty = true;
   }
+
   // Backfill products stored before the image field existed.
-  for (const p of globalStore.__buyzoProducts) {
-    if (!p.image) p.image = seedImages.get(p.id) ?? FALLBACK_IMAGE;
+  for (const p of store.products) {
+    if (!p.image) {
+      p.image = seedImages.get(p.id) ?? FALLBACK_IMAGE;
+      dirty = true;
+    }
   }
-  return globalStore.__buyzoProducts;
+
+  if (dirty) saveDb();
+  return store.products;
 }
 
 export function listProducts(): Product[] {
@@ -120,6 +121,7 @@ export function createProduct(input: ProductInput): Product {
     createdAt: new Date().toISOString(),
   };
   db().unshift(product);
+  saveDb();
   return product;
 }
 
@@ -130,6 +132,7 @@ export function updateProduct(
   const product = getProduct(id);
   if (!product) return undefined;
   Object.assign(product, input);
+  saveDb();
   return product;
 }
 
@@ -138,5 +141,6 @@ export function deleteProduct(id: string): boolean {
   const index = products.findIndex((p) => p.id === id);
   if (index === -1) return false;
   products.splice(index, 1);
+  saveDb();
   return true;
 }
