@@ -6,7 +6,7 @@ export default function AdminCustomersPage() {
   const customers = listCustomers();
 
   return (
-    <div className="max-w-5xl">
+    <div className="w-full">
       <div className="animate-fade-up mb-8">
         <h1 className="text-2xl font-bold">Customers</h1>
         <p className="mt-1 text-sm text-muted">
@@ -48,7 +48,7 @@ export default function AdminCustomersPage() {
                 >
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-3">
-                      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-gradient text-sm font-extrabold text-black">
+                      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-gradient text-sm font-extrabold text-white">
                         {c.name.slice(0, 1).toUpperCase()}
                       </span>
                       <span className="font-medium">{c.name}</span>

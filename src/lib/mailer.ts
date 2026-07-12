@@ -1,19 +1,20 @@
-type SentEmail = {
+import { getDatabase } from "./database";
+
+// Outbox persists in the SQLite database (email_outbox table) so sent mail can
+// be inspected any time.
+function recordOutbox(email: {
   to: string;
   subject: string;
   text: string;
   sentAt: string;
   delivered: boolean;
-};
-
-// Outbox persists across hot reloads so "sent" mail can be inspected in dev.
-const globalStore = globalThis as unknown as { __buyzoOutbox?: SentEmail[] };
-
-function outbox(): SentEmail[] {
-  if (!globalStore.__buyzoOutbox) {
-    globalStore.__buyzoOutbox = [];
-  }
-  return globalStore.__buyzoOutbox;
+}): void {
+  getDatabase()
+    .prepare(
+      `INSERT INTO email_outbox (to_email, subject, text, sent_at, delivered)
+       VALUES (?, ?, ?, ?, ?)`
+    )
+    .run(email.to, email.subject, email.text, email.sentAt, email.delivered ? 1 : 0);
 }
 
 /**
@@ -48,7 +49,7 @@ async function sendMail(to: string, subject: string, text: string): Promise<bool
     console.log(`[buyzo-mail] demo mode — would send to ${to}\nSubject: ${subject}\n${text}`);
   }
 
-  outbox().unshift({ to, subject, text, sentAt: new Date().toISOString(), delivered });
+  recordOutbox({ to, subject, text, sentAt: new Date().toISOString(), delivered });
   return delivered;
 }
 

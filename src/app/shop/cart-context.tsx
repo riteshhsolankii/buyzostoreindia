@@ -7,7 +7,7 @@ import {
   useEffect,
   useState,
 } from "react";
-import { FALLBACK_IMAGE, type Product } from "@/lib/products";
+import { FALLBACK_IMAGE, type Product } from "@/lib/types";
 
 export type CartItem = { product: Product; quantity: number };
 
