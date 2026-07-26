@@ -12,10 +12,19 @@ const globalStore = globalThis as unknown as {
  * so the same code runs on Vercel and on a laptop.
  */
 function resolveConfig(): { url: string; authToken?: string } {
-  const url =
-    process.env.TURSO_DATABASE_URL ??
-    process.env.DATABASE_URL ??
-    "file:data/buyzo.db";
+  const configured =
+    process.env.TURSO_DATABASE_URL ?? process.env.DATABASE_URL ?? null;
+
+  // A local SQLite file cannot work on a serverless host: the filesystem is
+  // read-only and per-invocation, and data/ is git-ignored so it is not even
+  // deployed. Failing here beats an opaque "unable to open database file".
+  if (!configured && process.env.VERCEL) {
+    throw new Error(
+      "TURSO_DATABASE_URL is not set. A hosted libSQL database is required on Vercel — add TURSO_DATABASE_URL and TURSO_AUTH_TOKEN to the project's environment variables."
+    );
+  }
+
+  const url = configured ?? "file:data/buyzo.db";
   const authToken = process.env.TURSO_AUTH_TOKEN;
 
   if (!url.startsWith("file:") && !authToken) {

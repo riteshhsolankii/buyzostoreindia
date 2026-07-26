@@ -36,7 +36,15 @@ export async function isValidSession(
   token: string | undefined
 ): Promise<boolean> {
   if (!token) return false;
-  return token === (await getSessionToken());
+  try {
+    return token === (await getSessionToken());
+  } catch (error) {
+    // Missing credentials mean nobody can be authenticated. Answering "not
+    // signed in" keeps every guarded route returning 401 instead of 500; the
+    // log is what tells the operator the server is misconfigured.
+    console.error("[buyzo-auth] cannot validate sessions:", error);
+    return false;
+  }
 }
 
 /** Credential check for the admin login route. */
