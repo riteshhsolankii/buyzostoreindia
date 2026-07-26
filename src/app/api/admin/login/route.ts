@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
 import {
-  ADMIN_EMAIL,
-  ADMIN_PASSWORD,
   SESSION_COOKIE,
   SESSION_MAX_AGE,
   getSessionToken,
+  isAdminCredentials,
 } from "@/lib/auth";
 
 export async function POST(request: Request) {
@@ -13,10 +12,7 @@ export async function POST(request: Request) {
     password?: string;
   } | null;
 
-  const email = body?.email?.trim().toLowerCase();
-  const password = body?.password;
-
-  if (email !== ADMIN_EMAIL.toLowerCase() || password !== ADMIN_PASSWORD) {
+  if (!isAdminCredentials(body?.email, body?.password)) {
     return NextResponse.json(
       { error: "Invalid email or password" },
       { status: 401 }

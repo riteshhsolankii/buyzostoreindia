@@ -11,7 +11,7 @@ type Context = { params: Promise<{ id: string }> };
 
 export async function GET(_request: Request, { params }: Context) {
   const { id } = await params;
-  const product = getProduct(id);
+  const product = await getProduct(id);
   if (!product) {
     return NextResponse.json({ error: "Product not found" }, { status: 404 });
   }
@@ -25,13 +25,16 @@ export async function PUT(request: Request, { params }: Context) {
     return NextResponse.json({ error: "Image is too large." }, { status: 400 });
   }
   const sku = body.extras?.sku?.trim();
-  if (sku && listProducts().some((p) => p.id !== id && p.extras?.sku === sku)) {
+  if (
+    sku &&
+    (await listProducts()).some((p) => p.id !== id && p.extras?.sku === sku)
+  ) {
     return NextResponse.json(
       { error: `SKU "${sku}" is already used by another product.` },
       { status: 409 }
     );
   }
-  const product = updateProduct(id, body);
+  const product = await updateProduct(id, body);
   if (!product) {
     return NextResponse.json({ error: "Product not found" }, { status: 404 });
   }
@@ -40,7 +43,7 @@ export async function PUT(request: Request, { params }: Context) {
 
 export async function DELETE(_request: Request, { params }: Context) {
   const { id } = await params;
-  const deleted = deleteProduct(id);
+  const deleted = await deleteProduct(id);
   if (!deleted) {
     return NextResponse.json({ error: "Product not found" }, { status: 404 });
   }

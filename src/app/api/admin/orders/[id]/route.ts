@@ -6,6 +6,7 @@ import {
   deliverOrder,
   getOrder,
   shipOrder,
+  type OrderResult,
 } from "@/lib/orders";
 
 export const dynamic = "force-dynamic";
@@ -17,7 +18,7 @@ export async function GET(request: NextRequest, { params }: Context) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const { id } = await params;
-  const order = getOrder(id);
+  const order = await getOrder(id);
   if (!order) {
     return NextResponse.json({ error: "Order not found" }, { status: 404 });
   }
@@ -58,7 +59,8 @@ export async function PATCH(request: NextRequest, { params }: Context) {
   }
 }
 
-function respond(result: ReturnType<typeof acceptOrder>) {
+async function respond(pending: Promise<OrderResult>) {
+  const result = await pending;
   if (!result.ok) {
     return NextResponse.json({ error: result.error }, { status: result.status });
   }

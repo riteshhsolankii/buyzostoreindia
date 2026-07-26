@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRef, useState } from "react";
 import type { Address, CustomerPublic } from "@/lib/types";
 import { useCustomer } from "../customer-context";
+import { useToast } from "../../toast-context";
 
 const inputClass =
   "mt-1 w-full rounded-lg border border-line bg-surface-2 px-3.5 py-2.5 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20";
@@ -104,6 +105,8 @@ export function ProfileView({
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // `error` is already the inline banner state here.
+  const { success, error: toastError, warning } = useToast();
 
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState(customer.name);
@@ -121,19 +124,29 @@ export function ProfileView({
   }) {
     setBusy(true);
     setError(null);
-    const res = await fetch("/api/customers/me", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(patch),
-    });
-    setBusy(false);
-    const data = await res.json().catch(() => null);
-    if (!res.ok) {
-      setError(data?.error ?? "Could not save changes. Try again.");
+    try {
+      const res = await fetch("/api/customers/me", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patch),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        const msg = data?.error ?? "Could not save changes. Try again.";
+        setError(msg);
+        toastError(msg);
+        return false;
+      }
+      setCustomer(data);
+      return true;
+    } catch {
+      const msg = "Network error — your changes were not saved.";
+      setError(msg);
+      toastError(msg);
       return false;
+    } finally {
+      setBusy(false);
     }
-    setCustomer(data);
-    return true;
   }
 
   async function handleAvatarPick(e: React.ChangeEvent<HTMLInputElement>) {
@@ -142,22 +155,29 @@ export function ProfileView({
     if (!file) return;
     if (!file.type.startsWith("image/")) {
       setError("Please choose an image file.");
+      warning("Please choose an image file.");
       return;
     }
     try {
       const avatar = await fileToAvatar(file);
-      await patchProfile({ avatar });
+      if (await patchProfile({ avatar })) success("Profile photo updated.");
     } catch {
-      setError("Could not process that image. Try another one.");
+      const msg = "Could not process that image. Try another one.";
+      setError(msg);
+      toastError(msg);
     }
   }
 
   async function handleNameSave() {
     if (nameDraft.trim().length < 2) {
       setError("Name must be at least 2 characters.");
+      warning("Name must be at least 2 characters.");
       return;
     }
-    if (await patchProfile({ name: nameDraft.trim() })) setEditingName(false);
+    if (await patchProfile({ name: nameDraft.trim() })) {
+      setEditingName(false);
+      success("Name updated.");
+    }
   }
 
   function openAddForm() {
@@ -196,20 +216,26 @@ export function ProfileView({
     const next = editingAddressId
       ? addresses.map((a) => (a.id === editingAddressId ? entry : a))
       : [...addresses, entry];
+    const wasEditing = Boolean(editingAddressId);
     if (await patchProfile({ addresses: next })) {
       setAddressFormOpen(false);
       setEditingAddressId(null);
+      success(wasEditing ? "Address updated." : "Address added.");
     }
   }
 
   async function handleAddressDelete(id: string) {
-    await patchProfile({ addresses: addresses.filter((a) => a.id !== id) });
+    if (await patchProfile({ addresses: addresses.filter((a) => a.id !== id) }))
+      success("Address removed.");
   }
 
   async function handleSetDefault(id: string) {
-    await patchProfile({
-      addresses: addresses.map((a) => ({ ...a, isDefault: a.id === id })),
-    });
+    if (
+      await patchProfile({
+        addresses: addresses.map((a) => ({ ...a, isDefault: a.id === id })),
+      })
+    )
+      success("Default delivery address updated.");
   }
 
   const addressField = (key: keyof AddressForm) => ({
@@ -225,7 +251,7 @@ export function ProfileView({
         <div className="bg-brand-gradient px-8 py-7">
           <div className="flex items-center gap-5">
             <div className="relative">
-              <span className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-white text-2xl font-extrabold text-accent shadow-lg shadow-black/10">
+              <span className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-black text-2xl font-extrabold text-accent shadow-lg shadow-black/30">
                 {customer.avatar ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={customer.avatar} alt={customer.name} className="h-full w-full object-cover" />
@@ -237,7 +263,7 @@ export function ProfileView({
                 type="button"
                 onClick={() => fileRef.current?.click()}
                 disabled={busy}
-                className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-foreground text-white transition hover:scale-110 disabled:opacity-60"
+                className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full border-2 border-accent bg-black text-foreground transition hover:scale-110 disabled:opacity-60"
                 aria-label="Change profile photo"
                 title="Change profile photo"
               >
@@ -257,14 +283,14 @@ export function ProfileView({
                   <input
                     value={nameDraft}
                     onChange={(e) => setNameDraft(e.target.value)}
-                    className="w-full max-w-60 rounded-lg border-0 bg-white/90 px-3 py-1.5 text-sm font-bold text-foreground outline-none"
+                    className="w-full max-w-60 rounded-lg border-0 bg-black px-3 py-1.5 text-sm font-bold text-foreground outline-none"
                     autoFocus
                   />
                   <button
                     type="button"
                     onClick={handleNameSave}
                     disabled={busy}
-                    className="rounded-lg bg-foreground px-3 py-1.5 text-xs font-bold text-white transition hover:brightness-125 disabled:opacity-60"
+                    className="rounded-lg bg-black px-3 py-1.5 text-xs font-bold text-foreground transition hover:brightness-125 disabled:opacity-60"
                   >
                     Save
                   </button>
@@ -274,21 +300,21 @@ export function ProfileView({
                       setEditingName(false);
                       setNameDraft(customer.name);
                     }}
-                    className="text-xs font-semibold text-white/80 transition hover:text-white"
+                    className="text-xs font-semibold text-black/70 transition hover:text-black"
                   >
                     Cancel
                   </button>
                 </div>
               ) : (
                 <div className="flex items-center gap-2.5">
-                  <h1 className="truncate text-xl font-extrabold text-white">{customer.name}</h1>
+                  <h1 className="truncate text-xl font-extrabold text-black">{customer.name}</h1>
                   <button
                     type="button"
                     onClick={() => {
                       setNameDraft(customer.name);
                       setEditingName(true);
                     }}
-                    className="rounded-full bg-white/20 p-1.5 text-white transition hover:bg-white/30"
+                    className="rounded-full bg-black/15 p-1.5 text-black transition hover:bg-black/25"
                     aria-label="Edit name"
                     title="Edit name"
                   >
@@ -296,7 +322,7 @@ export function ProfileView({
                   </button>
                 </div>
               )}
-              <div className="mt-1 text-sm font-semibold text-white/80">Buyzo Member</div>
+              <div className="mt-1 text-sm font-semibold text-black/70">Buyzo Member</div>
             </div>
           </div>
         </div>

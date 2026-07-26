@@ -2,8 +2,8 @@ import { listCustomers } from "@/lib/customers";
 
 export const dynamic = "force-dynamic";
 
-export default function AdminCustomersPage() {
-  const customers = listCustomers();
+export default async function AdminCustomersPage() {
+  const customers = await listCustomers();
 
   return (
     <div className="w-full">
@@ -48,7 +48,7 @@ export default function AdminCustomersPage() {
                 >
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-3">
-                      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-gradient text-sm font-extrabold text-white">
+                      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-brand-gradient text-sm font-extrabold text-on-accent">
                         {c.name.slice(0, 1).toUpperCase()}
                       </span>
                       <span className="font-medium">{c.name}</span>

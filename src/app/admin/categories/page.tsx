@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { CategoryRow } from "@/lib/categories";
+import { useToast } from "../../toast-context";
 
 const inputClass =
   "rounded-lg border border-line bg-surface-2 px-3.5 py-2.5 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20";
@@ -14,6 +15,8 @@ export default function AdminCategoriesPage() {
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
+  // `error` is already taken by the inline banner state above.
+  const { success, error: toastError, warning } = useToast();
 
   useEffect(() => {
     fetch("/api/categories", { cache: "no-store" })
@@ -31,25 +34,40 @@ export default function AdminCategoriesPage() {
   async function request(method: string, body: object) {
     setBusy(true);
     setError(null);
-    const res = await fetch("/api/categories", {
-      method,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    const data = await res.json().catch(() => null);
-    setBusy(false);
-    if (!res.ok) {
-      setError(data?.error ?? "Something went wrong.");
+    try {
+      const res = await fetch("/api/categories", {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json().catch(() => null);
+      if (!res.ok) {
+        const msg = data?.error ?? "Something went wrong.";
+        setError(msg);
+        toastError(msg);
+        return false;
+      }
+      setCategories(data as CategoryRow[]);
+      return true;
+    } catch {
+      // Without this the button stayed stuck in its busy state.
+      const msg = "Network error — could not reach the server.";
+      setError(msg);
+      toastError(msg);
       return false;
+    } finally {
+      setBusy(false);
     }
-    setCategories(data as CategoryRow[]);
-    return true;
   }
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
     if (!newName.trim()) return;
-    if (await request("POST", { name: newName })) setNewName("");
+    const name = newName.trim();
+    if (await request("POST", { name: newName })) {
+      setNewName("");
+      success(`Category "${name}" added.`);
+    }
   }
 
   async function handleRename(from: string) {
@@ -57,18 +75,22 @@ export default function AdminCategoriesPage() {
       setEditing(null);
       return;
     }
-    if (await request("PUT", { from, to: editValue })) setEditing(null);
+    const to = editValue.trim();
+    if (await request("PUT", { from, to: editValue })) {
+      setEditing(null);
+      success(`Renamed "${from}" to "${to}".`);
+    }
   }
 
   async function handleDelete(name: string, count: number) {
     if (count > 0) {
-      setError(
-        `"${name}" mein ${count} product${count === 1 ? " hai" : "s hain"} — pehle unhe move ya delete karo.`
-      );
+      const msg = `"${name}" mein ${count} product${count === 1 ? " hai" : "s hain"} — pehle unhe move ya delete karo.`;
+      setError(msg);
+      warning(msg);
       return;
     }
     if (!confirm(`Delete category "${name}"?`)) return;
-    await request("DELETE", { name });
+    if (await request("DELETE", { name })) success(`Category "${name}" deleted.`);
   }
 
   const totalProducts = categories.reduce((sum, c) => sum + c.count, 0);
@@ -100,7 +122,7 @@ export default function AdminCategoriesPage() {
         <button
           type="submit"
           disabled={busy || !newName.trim()}
-          className="rounded-lg bg-brand-gradient px-5 py-2.5 text-sm font-bold text-white transition hover:brightness-110 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
+          className="rounded-lg bg-brand-gradient px-5 py-2.5 text-sm font-bold text-on-accent transition hover:brightness-110 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40"
         >
           + Add category
         </button>
@@ -158,7 +180,7 @@ export default function AdminCategoriesPage() {
                   <button
                     onClick={() => handleRename(c.name)}
                     disabled={busy}
-                    className="rounded-lg bg-brand-gradient px-3 py-1.5 text-xs font-bold text-white transition hover:brightness-110"
+                    className="rounded-lg bg-brand-gradient px-3 py-1.5 text-xs font-bold text-on-accent transition hover:brightness-110"
                   >
                     Save
                   </button>

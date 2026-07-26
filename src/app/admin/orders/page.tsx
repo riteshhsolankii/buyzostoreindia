@@ -3,8 +3,8 @@ import { OrdersBoard } from "./orders-board";
 
 export const dynamic = "force-dynamic";
 
-export default function AdminOrdersPage() {
-  const orders = listOrders();
+export default async function AdminOrdersPage() {
+  const orders = await listOrders();
   return (
     <div className="w-full">
       <div className="animate-fade-up mb-8">

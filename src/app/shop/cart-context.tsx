@@ -8,6 +8,7 @@ import {
   useState,
 } from "react";
 import { FALLBACK_IMAGE, type Product } from "@/lib/types";
+import { useToast } from "../toast-context";
 
 export type CartItem = { product: Product; quantity: number };
 
@@ -28,6 +29,9 @@ const STORAGE_KEY = "buyzo-cart";
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [hydrated, setHydrated] = useState(false);
+  // Toasts live here rather than at each call site so every entry point
+  // (grid, product page, wishlist) reports the same way.
+  const { success, info } = useToast();
 
   useEffect(() => {
     try {
@@ -53,19 +57,28 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     if (hydrated) localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
   }, [items, hydrated]);
 
-  const addItem = useCallback((product: Product, quantity = 1) => {
-    setItems((prev) => {
-      const existing = prev.find((i) => i.product.id === product.id);
-      if (existing) {
-        return prev.map((i) =>
-          i.product.id === product.id
-            ? { ...i, quantity: i.quantity + quantity }
-            : i
-        );
-      }
-      return [...prev, { product, quantity }];
-    });
-  }, []);
+  const addItem = useCallback(
+    (product: Product, quantity = 1) => {
+      setItems((prev) => {
+        const existing = prev.find((i) => i.product.id === product.id);
+        if (existing) {
+          return prev.map((i) =>
+            i.product.id === product.id
+              ? { ...i, quantity: i.quantity + quantity }
+              : i
+          );
+        }
+        return [...prev, { product, quantity }];
+      });
+      success(
+        quantity > 1
+          ? `${product.name} (×${quantity}) added to your cart.`
+          : `${product.name} added to your cart.`,
+        { title: "Added to cart" }
+      );
+    },
+    [success]
+  );
 
   const setQuantity = useCallback((productId: string, quantity: number) => {
     setItems((prev) =>
@@ -77,9 +90,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     );
   }, []);
 
-  const removeItem = useCallback((productId: string) => {
-    setItems((prev) => prev.filter((i) => i.product.id !== productId));
-  }, []);
+  const removeItem = useCallback(
+    (productId: string) => {
+      const removed = items.find((i) => i.product.id === productId);
+      setItems((prev) => prev.filter((i) => i.product.id !== productId));
+      if (removed) info(`${removed.product.name} removed from your cart.`);
+    },
+    [items, info]
+  );
 
   const clear = useCallback(() => setItems([]), []);
 

@@ -8,9 +8,6 @@ import { useCart } from "./cart-context";
 import { useCustomer } from "./customer-context";
 import { useWishlist } from "./wishlist-context";
 
-const BRAND_ORANGE = "#f4711c";
-const BRAND_NAVY = "#1b2337";
-
 function ChevronDown() {
   return (
     <svg width="10" height="10" viewBox="0 0 12 12" fill="none" aria-hidden>
@@ -105,48 +102,87 @@ function SignOutIcon() {
   );
 }
 
-/** Buyzo brand mark — smiling orange shopping bag with a navy handle. */
-export function BuyzoMark({ size = 40 }: { size?: number }) {
+/**
+ * Brand artwork lives in /public/logo. `logo.svg` is the supplied master;
+ * the other two are viewBox crops of it (identical paths), so all three stay
+ * in sync if the master is replaced.
+ *   ASPECT[x] = intrinsic width / height, used to reserve space and avoid
+ *   layout shift while the asset loads.
+ */
+const LOGO = {
+  mark: { src: "/logo/logo-mark.svg", ratio: 1486 / 1772 },
+  lockup: { src: "/logo/logo-lockup.svg", ratio: 6328 / 1772 },
+  full: { src: "/logo/logo.svg", ratio: 6328 / 2507 },
+} as const;
+
+function BuyzoArt({
+  variant,
+  height,
+  alt,
+  className,
+}: {
+  variant: keyof typeof LOGO;
+  height: number;
+  alt: string;
+  className?: string;
+}) {
+  const art = LOGO[variant];
   return (
-    <svg width={size} height={size} viewBox="0 0 128 128" aria-hidden>
-      <path
-        d="M46 46 C46 16, 82 16, 82 46"
-        fill="none"
-        stroke={BRAND_NAVY}
-        strokeWidth="11"
-        strokeLinecap="round"
-      />
-      <rect x="12" y="40" width="104" height="82" rx="28" fill={BRAND_ORANGE} />
-      <circle cx="46" cy="52" r="7.5" fill="#ffffff" />
-      <circle cx="82" cy="52" r="7.5" fill="#ffffff" />
-      <path
-        d="M40 86 Q64 106 88 86"
-        fill="none"
-        stroke="#ffffff"
-        strokeWidth="10"
-        strokeLinecap="round"
-      />
-    </svg>
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={art.src}
+      alt={alt}
+      aria-hidden={alt === "" || undefined}
+      width={Math.round(height * art.ratio)}
+      height={height}
+      // Explicit width/height reserve the box; `width:auto` keeps the ratio
+      // exact even if a parent constrains the height.
+      style={{ height, width: "auto" }}
+      className={className}
+    />
   );
 }
 
+/**
+ * Buyzo bag mark (the fused bag/"B"). `size` is the rendered height; width
+ * follows the artwork's own ratio rather than being forced square.
+ */
+export function BuyzoMark({ size = 40 }: { size?: number }) {
+  return <BuyzoArt variant="mark" height={size} alt="" />;
+}
+
+/**
+ * Wordmark lockup for places that supply their own link/heading.
+ * `tagline` picks the artwork that includes "Shop Smart. Live Better."
+ */
+export function BuyzoLockup({
+  height = 30,
+  tagline = false,
+  className,
+}: {
+  height?: number;
+  tagline?: boolean;
+  className?: string;
+}) {
+  return (
+    <BuyzoArt
+      variant={tagline ? "full" : "lockup"}
+      height={height}
+      alt="Buyzo"
+      className={className}
+    />
+  );
+}
+
+/** Header logo — the lockup wrapped in a link home. */
 export function BuyzoLogo({ tagline = false }: { tagline?: boolean }) {
   return (
-    <Link href="/shop" className="group flex items-center gap-2.5">
-      <span className="transition-transform duration-300 group-hover:-rotate-6 group-hover:scale-105">
-        <BuyzoMark />
-      </span>
-      <span className="leading-none">
-        <span className="block text-[26px] font-extrabold tracking-tight">
-          <span className="text-foreground">Buy</span>
-          <span className="text-brand-gradient">zo</span>
-        </span>
-        {tagline && (
-          <span className="mt-1 block text-[9px] font-semibold tracking-[0.18em] text-muted">
-            SHOP SMART. LIVE BETTER.
-          </span>
-        )}
-      </span>
+    <Link href="/shop" className="group flex items-center" aria-label="Buyzo — home">
+      <BuyzoLockup
+        height={tagline ? 48 : 34}
+        tagline={tagline}
+        className="transition-transform duration-300 group-hover:scale-[1.03]"
+      />
     </Link>
   );
 }
@@ -247,7 +283,8 @@ export function SiteHeader() {
 
       <div className="border-b border-line bg-surface text-foreground">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-3.5">
-          <BuyzoLogo tagline />
+          {/* No tagline here — the lime utility bar above already carries it. */}
+          <BuyzoLogo />
 
           <nav className="hidden items-center gap-8 text-[15px] font-semibold lg:flex">
             <Link href="/shop" className="transition hover:text-accent">

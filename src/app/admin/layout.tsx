@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { AdminNav } from "./nav";
 import { LogoutButton } from "./logout-button";
-import { BuyzoMark } from "../shop/site-header";
+import { BuyzoLockup } from "../shop/site-header";
 
 export const metadata: Metadata = {
   title: "Buyzo Admin",
@@ -15,16 +15,10 @@ export default function AdminLayout({
     <div className="flex-1 flex">
       <aside className="hidden w-60 shrink-0 flex-col border-r border-line bg-surface sm:flex">
         <div className="border-b border-line px-5 py-5">
-          <Link href="/admin" className="flex items-center gap-2.5">
-            <BuyzoMark size={32} />
-            <span className="leading-none">
-              <span className="block font-extrabold">
-                <span className="text-foreground">Buy</span>
-                <span className="text-brand-gradient">zo</span>
-              </span>
-              <span className="mt-0.5 block text-[10px] font-semibold tracking-[0.2em] text-accent/80">
-                ADMIN PANEL
-              </span>
+          <Link href="/admin" className="flex flex-col items-start gap-1.5">
+            <BuyzoLockup height={26} />
+            <span className="block text-[10px] font-semibold tracking-[0.2em] text-accent/80">
+              ADMIN PANEL
             </span>
           </Link>
         </div>
@@ -41,12 +35,8 @@ export default function AdminLayout({
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="flex items-center justify-between border-b border-line bg-surface px-4 py-3 sm:hidden">
-          <Link href="/admin" className="flex items-center gap-2 font-extrabold">
-            <BuyzoMark size={26} />
-            <span>
-              <span className="text-foreground">Buy</span>
-              <span className="text-brand-gradient">zo</span>
-            </span>
+          <Link href="/admin" className="flex items-center" aria-label="Buyzo Admin — dashboard">
+            <BuyzoLockup height={22} />
           </Link>
           <nav className="flex gap-4 text-sm text-muted">
             <Link href="/admin" className="hover:text-accent">

@@ -1,4 +1,4 @@
-import { getDatabase } from "./database";
+import { all, one, run } from "./database";
 import type { Address, Customer, CustomerPublic } from "./types";
 
 export type { Address, Customer, CustomerPublic } from "./types";
@@ -55,30 +55,27 @@ export function toPublic(customer: Customer): CustomerPublic {
   return rest;
 }
 
-export function listCustomers(): CustomerPublic[] {
-  const rows = getDatabase()
-    .prepare(
-      "SELECT id, name, email, phone, password_hash, avatar, addresses_json, created_at FROM customers ORDER BY created_at DESC"
-    )
-    .all() as CustomerRow[];
+const SELECT_CUSTOMER =
+  "SELECT id, name, email, phone, password_hash, avatar, addresses_json, created_at FROM customers";
+
+export async function listCustomers(): Promise<CustomerPublic[]> {
+  const rows = await all<CustomerRow>(
+    `${SELECT_CUSTOMER} ORDER BY created_at DESC`
+  );
   return rows.map((row) => toPublic(toCustomer(row)));
 }
 
-export function findCustomerByEmail(email: string): Customer | undefined {
-  const row = getDatabase()
-    .prepare(
-      "SELECT id, name, email, phone, password_hash, avatar, addresses_json, created_at FROM customers WHERE email = ?"
-    )
-    .get(email.trim().toLowerCase()) as CustomerRow | undefined;
+export async function findCustomerByEmail(
+  email: string
+): Promise<Customer | undefined> {
+  const row = await one<CustomerRow>(`${SELECT_CUSTOMER} WHERE email = ?`, [
+    email.trim().toLowerCase(),
+  ]);
   return row ? toCustomer(row) : undefined;
 }
 
-export function getCustomer(id: string): Customer | undefined {
-  const row = getDatabase()
-    .prepare(
-      "SELECT id, name, email, phone, password_hash, avatar, addresses_json, created_at FROM customers WHERE id = ?"
-    )
-    .get(id) as CustomerRow | undefined;
+export async function getCustomer(id: string): Promise<Customer | undefined> {
+  const row = await one<CustomerRow>(`${SELECT_CUSTOMER} WHERE id = ?`, [id]);
   return row ? toCustomer(row) : undefined;
 }
 
@@ -97,30 +94,29 @@ export async function createCustomer(input: {
     passwordHash: await sha256(`${input.password}:${SECRET}`),
     createdAt: now,
   };
-  getDatabase()
-    .prepare(
-      `INSERT INTO customers (
-         id, name, email, phone, password_hash, password_algorithm,
-         avatar, addresses_json, created_at, updated_at
-       ) VALUES (?, ?, ?, ?, ?, 'legacy-sha256', NULL, NULL, ?, ?)`
-    )
-    .run(
+  await run(
+    `INSERT INTO customers (
+       id, name, email, phone, password_hash, password_algorithm,
+       avatar, addresses_json, created_at, updated_at
+     ) VALUES (?, ?, ?, ?, ?, 'legacy-sha256', NULL, NULL, ?, ?)`,
+    [
       customer.id,
       customer.name,
       customer.email,
       customer.phone,
       customer.passwordHash,
       now,
-      now
-    );
+      now,
+    ]
+  );
   return customer;
 }
 
-export function updateCustomer(
+export async function updateCustomer(
   id: string,
   patch: Partial<Pick<Customer, "name" | "phone" | "avatar" | "addresses">>
-): Customer | undefined {
-  const customer = getCustomer(id);
+): Promise<Customer | undefined> {
+  const customer = await getCustomer(id);
   if (!customer) return undefined;
 
   if (patch.name !== undefined) customer.name = patch.name;
@@ -135,13 +131,11 @@ export function updateCustomer(
     }));
   }
 
-  getDatabase()
-    .prepare(
-      `UPDATE customers SET
-         name = ?, phone = ?, avatar = ?, addresses_json = ?, updated_at = ?
-       WHERE id = ?`
-    )
-    .run(
+  await run(
+    `UPDATE customers SET
+       name = ?, phone = ?, avatar = ?, addresses_json = ?, updated_at = ?
+     WHERE id = ?`,
+    [
       customer.name,
       customer.phone,
       customer.avatar || null,
@@ -149,9 +143,19 @@ export function updateCustomer(
         ? JSON.stringify(customer.addresses)
         : null,
       new Date().toISOString(),
-      id
-    );
+      id,
+    ]
+  );
   return customer;
+}
+
+/** Phone is an optional profile field — stored digits-only, never verified. */
+export function normalizePhone(phone: string): string {
+  return phone.replace(/[^\d+]/g, "");
+}
+
+export function isValidPhone(phone: string): boolean {
+  return /^\+?\d{7,15}$/.test(normalizePhone(phone));
 }
 
 export function sanitizeAddress(raw: unknown): Address | null {
@@ -181,7 +185,7 @@ export async function verifyCustomer(
   email: string,
   password: string
 ): Promise<Customer | null> {
-  const customer = findCustomerByEmail(email);
+  const customer = await findCustomerByEmail(email);
   if (!customer) return null;
   const hash = await sha256(`${password}:${SECRET}`);
   return hash === customer.passwordHash ? customer : null;
@@ -199,5 +203,5 @@ export async function customerFromToken(
   const [id, sig] = token.split(".");
   if (!id || !sig) return null;
   if (sig !== (await sha256(`${id}:${SECRET}`))) return null;
-  return getCustomer(id) ?? null;
+  return (await getCustomer(id)) ?? null;
 }

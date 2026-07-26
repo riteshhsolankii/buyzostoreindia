@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { SiteHeader, BuyzoMark } from "../site-header";
+import { SiteHeader, BuyzoLockup } from "../site-header";
 
 export default function StoreLayout({
   children,
@@ -13,19 +13,9 @@ export default function StoreLayout({
       <footer className="border-t border-line bg-surface text-foreground">
         <div className="mx-auto grid max-w-7xl gap-8 px-6 py-12 lg:grid-cols-[1.1fr_0.7fr_0.7fr]">
           <div>
-            <div className="flex items-center gap-3">
-              <span className="rounded-2xl bg-surface-2 p-2">
-                <BuyzoMark size={32} />
-              </span>
-              <div>
-                <div className="text-xl font-extrabold leading-none">
-                  Buy<span className="text-brand-gradient">zo</span>
-                </div>
-                <div className="mt-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-muted">
-                  Shop smart. Live better.
-                </div>
-              </div>
-            </div>
+            {/* The full artwork already carries the wordmark and tagline. */}
+            <BuyzoLockup height={56} tagline />
+
             <p className="mt-5 max-w-md text-sm leading-7 text-muted">
               Curated electronics, premium wearables, and everyday essentials delivered with a calm and elevated shopping experience.
             </p>
