@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { BuyzoMark } from "../shop/site-header";
+import { useToast } from "../toast-context";
 
 const inputClass =
   "mt-1 w-full rounded-lg border border-line bg-surface-2 px-3.5 py-2.5 text-sm outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20";
@@ -15,6 +16,7 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const { success, error: toastError } = useToast();
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -28,9 +30,12 @@ function LoginForm() {
     setSubmitting(false);
     if (!res.ok) {
       const data = await res.json().catch(() => null);
-      setError(data?.error ?? "Login failed. Please try again.");
+      const msg = data?.error ?? "Login failed. Please try again.";
+      setError(msg);
+      toastError(msg, { title: "Sign in failed" });
       return;
     }
+    success("Welcome back — signed in to the admin panel.");
     const from = searchParams.get("from");
     const target = from && from.startsWith("/admin") ? from : "/admin";
     router.push(target);
@@ -41,11 +46,13 @@ function LoginForm() {
     <div className="animate-scale-in grid w-full max-w-4xl overflow-hidden rounded-3xl border border-line bg-surface/80 shadow-2xl shadow-black/10 backdrop-blur lg:grid-cols-2">
       {/* Brand panel */}
       <div className="relative hidden flex-col justify-between overflow-hidden bg-brand-gradient p-10 lg:flex">
-        <div className="pointer-events-none absolute -bottom-24 -right-24 opacity-15">
+        {/* Watermark sits on the lime panel, so the white/lime artwork is
+            flattened to black — otherwise it disappears into the background. */}
+        <div className="pointer-events-none absolute -bottom-24 -right-24 opacity-15 brightness-0">
           <BuyzoMark size={360} />
         </div>
         <div className="relative">
-          <span className="inline-flex items-center justify-center rounded-2xl bg-white p-3 shadow-lg shadow-black/20">
+          <span className="inline-flex items-center justify-center rounded-2xl bg-black p-3 shadow-lg shadow-black/30">
             <BuyzoMark size={44} />
           </span>
           <h2 className="mt-8 text-4xl font-extrabold leading-tight">
@@ -53,7 +60,7 @@ function LoginForm() {
             <br />
             Live Better.
           </h2>
-          <p className="mt-4 max-w-xs text-sm font-medium text-white/80">
+          <p className="mt-4 max-w-xs text-sm font-medium text-black/70">
             One dashboard to run your entire Buyzo store.
           </p>
           <ul className="mt-8 space-y-3 text-sm font-semibold">
@@ -67,7 +74,7 @@ function LoginForm() {
                 className="animate-slide-in flex items-center gap-3"
                 style={{ animationDelay: `${200 + i * 100}ms` }}
               >
-                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-accent">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-black text-accent">
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden>
                     <path d="m5 12.5 4.5 4.5L19 7.5" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
                   </svg>
@@ -77,7 +84,7 @@ function LoginForm() {
             ))}
           </ul>
         </div>
-        <p className="relative text-xs font-semibold text-white/70">
+        <p className="relative text-xs font-semibold text-black/60">
           © 2026 Buyzo
         </p>
       </div>
@@ -127,7 +134,7 @@ function LoginForm() {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full rounded-lg bg-brand-gradient px-4 py-3 text-sm font-extrabold text-white shadow-lg shadow-accent/25 transition hover:shadow-accent/40 hover:brightness-110 active:scale-[0.99] disabled:opacity-60"
+            className="w-full rounded-lg bg-brand-gradient px-4 py-3 text-sm font-extrabold text-on-accent shadow-lg shadow-accent/25 transition hover:shadow-accent/40 hover:brightness-110 active:scale-[0.99] disabled:opacity-60"
           >
             {submitting ? "Signing in…" : "Sign in to dashboard"}
           </button>

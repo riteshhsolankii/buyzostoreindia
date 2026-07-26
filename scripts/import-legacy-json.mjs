@@ -1,8 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import dotenv from "dotenv";
-import Database from "better-sqlite3";
+import { createClient } from "@libsql/client";
 
 const root = process.cwd();
 dotenv.config({ path: path.join(root, ".env.local"), quiet: true });
@@ -20,13 +19,23 @@ const seedImages = new Map(
 );
 const statuses = new Set(["draft", "active", "out-of-stock", "archived"]);
 
-function databasePath(url = process.env.DATABASE_URL) {
-  if (!url) return path.join(root, "data", "buyzo.db");
+// Mirrors src/lib/database.ts: a hosted libSQL/Turso URL or a local file.
+function resolveConfig() {
+  const url =
+    process.env.TURSO_DATABASE_URL ??
+    process.env.DATABASE_URL ??
+    "file:data/buyzo.db";
+  const authToken = process.env.TURSO_AUTH_TOKEN;
+
   if (!url.startsWith("file:")) {
-    throw new Error("DATABASE_URL must be a local SQLite file: URL.");
+    if (!authToken) {
+      throw new Error(
+        "TURSO_AUTH_TOKEN is required for a remote libSQL database URL."
+      );
+    }
+    return { url, authToken };
   }
-  if (url.startsWith("file://")) return fileURLToPath(url);
-  return path.resolve(root, decodeURIComponent(url.slice("file:".length)));
+  return { url };
 }
 
 function asObject(value) {
@@ -68,55 +77,41 @@ if (!fs.existsSync(legacyPath)) {
   throw new Error(`Legacy data file not found: ${legacyPath}`);
 }
 
-const resolvedDatabasePath = databasePath();
-if (!fs.existsSync(resolvedDatabasePath)) {
-  throw new Error(
-    "SQLite database not found. Run `npm run db:migrate` before importing legacy data."
-  );
-}
-
 const legacy = JSON.parse(fs.readFileSync(legacyPath, "utf8"));
-const database = new Database(resolvedDatabasePath);
-database.pragma("foreign_keys = ON");
-database.pragma("busy_timeout = 5000");
+const config = resolveConfig();
+const client = createClient(config);
 
 try {
-  const schemaReady = database
-    .prepare(
-      "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'app_meta'"
-    )
-    .get();
-  if (!schemaReady) {
-    throw new Error("SQLite schema is missing. Run `npm run db:migrate` first.");
+  const schemaReady = await client.execute(
+    "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'app_meta'"
+  );
+  if (schemaReady.rows.length === 0) {
+    throw new Error("Database schema is missing. Run `npm run db:migrate` first.");
   }
 
-  const alreadyImported = database
-    .prepare("SELECT value FROM app_meta WHERE key = ?")
-    .get(importMarker);
-  if (alreadyImported) {
+  const alreadyImported = await client.execute({
+    sql: "SELECT value FROM app_meta WHERE key = ?",
+    args: [importMarker],
+  });
+  if (alreadyImported.rows.length > 0) {
     console.log("Legacy JSON data was already imported; nothing to do.");
     process.exit(0);
   }
 
-  const existing = database
-    .prepare(
-      "SELECT (SELECT COUNT(*) FROM products) + (SELECT COUNT(*) FROM customers) + (SELECT COUNT(*) FROM email_outbox) AS count"
-    )
-    .get();
-  if (existing.count > 0) {
+  const existing = await client.execute(
+    "SELECT (SELECT COUNT(*) FROM products) + (SELECT COUNT(*) FROM customers) + (SELECT COUNT(*) FROM email_outbox) AS count"
+  );
+  if (existing.rows[0].count > 0) {
     throw new Error(
-      "SQLite database already contains application data. Refusing to merge legacy JSON automatically."
+      "Database already contains application data. Refusing to merge legacy JSON automatically."
     );
   }
 
-  const insertCategory = database.prepare(`
+  const insertCategory = `
     INSERT INTO categories (id, name, name_key, position, created_at, updated_at)
     VALUES (@id, @name, @nameKey, @position, @createdAt, @updatedAt)
-  `);
-  const findCategory = database.prepare(
-    "SELECT id FROM categories WHERE name_key = ?"
-  );
-  const insertProduct = database.prepare(`
+  `;
+  const insertProduct = `
     INSERT INTO products (
       id, name, description, price_cents, category_id, stock, emoji, image,
       slug, brand, sku, status, extras_json, display_order, created_at, updated_at
@@ -124,42 +119,49 @@ try {
       @id, @name, @description, @priceCents, @categoryId, @stock, @emoji, @image,
       @slug, @brand, @sku, @status, @extrasJson, @displayOrder, @createdAt, @updatedAt
     )
-  `);
-  const insertCustomer = database.prepare(`
+  `;
+  const insertCustomer = `
     INSERT INTO customers (
       id, name, email, phone, password_hash, password_algorithm, created_at, updated_at
     ) VALUES (
       @id, @name, @email, @phone, @passwordHash, 'legacy-sha256', @createdAt, @updatedAt
     )
-  `);
-  const insertOutbox = database.prepare(`
+  `;
+  const insertOutbox = `
     INSERT INTO email_outbox (to_email, subject, text, sent_at, delivered)
     VALUES (@to, @subject, @text, @sentAt, @delivered)
-  `);
-  const writeMeta = database.prepare(`
+  `;
+  const writeMeta = `
     INSERT INTO app_meta (key, value, updated_at)
     VALUES (?, ?, ?)
     ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at
-  `);
+  `;
 
-  const importLegacy = database.transaction(() => {
+  const tx = await client.transaction("write");
+  try {
     const now = new Date().toISOString();
     let categoryPosition = 0;
 
-    const ensureCategory = (value) => {
+    const ensureCategory = async (value) => {
       const name = stringValue(value).trim() || "General";
       const nameKey = normalizedKey(name);
-      const existingCategory = findCategory.get(nameKey);
-      if (existingCategory) return existingCategory.id;
+      const found = await tx.execute({
+        sql: "SELECT id FROM categories WHERE name_key = ?",
+        args: [nameKey],
+      });
+      if (found.rows.length > 0) return found.rows[0].id;
 
       const id = `cat-${crypto.randomUUID().slice(0, 8)}`;
-      insertCategory.run({
-        id,
-        name,
-        nameKey,
-        position: categoryPosition++,
-        createdAt: now,
-        updatedAt: now,
+      await tx.execute({
+        sql: insertCategory,
+        args: {
+          id,
+          name,
+          nameKey,
+          position: categoryPosition++,
+          createdAt: now,
+          updatedAt: now,
+        },
       });
       return id;
     };
@@ -167,7 +169,7 @@ try {
     for (const category of Array.isArray(legacy.categories)
       ? legacy.categories
       : []) {
-      ensureCategory(category);
+      await ensureCategory(category);
     }
 
     for (const [displayOrder, rawProduct] of (
@@ -177,26 +179,29 @@ try {
       const extras = asObject(product.extras);
       const status = statuses.has(extras.status) ? extras.status : "active";
       const id = optionalText(product.id) ?? `p-${crypto.randomUUID().slice(0, 8)}`;
-      const categoryId = ensureCategory(product.category);
+      const categoryId = await ensureCategory(product.category);
 
-      insertProduct.run({
-        id,
-        name: optionalText(product.name) ?? "Untitled product",
-        description: stringValue(product.description),
-        priceCents: priceCents(product.price),
-        categoryId,
-        stock: nonNegativeInteger(product.stock),
-        emoji: optionalText(product.emoji) ?? "📦",
-        image:
-          optionalText(product.image) ?? seedImages.get(id) ?? fallbackImage,
-        slug: optionalText(extras.slug),
-        brand: optionalText(extras.brand),
-        sku: optionalText(extras.sku),
-        status,
-        extrasJson: JSON.stringify(extras),
-        displayOrder,
-        createdAt: asIsoDate(product.createdAt),
-        updatedAt: now,
+      await tx.execute({
+        sql: insertProduct,
+        args: {
+          id,
+          name: optionalText(product.name) ?? "Untitled product",
+          description: stringValue(product.description),
+          priceCents: priceCents(product.price),
+          categoryId,
+          stock: nonNegativeInteger(product.stock),
+          emoji: optionalText(product.emoji) ?? "📦",
+          image:
+            optionalText(product.image) ?? seedImages.get(id) ?? fallbackImage,
+          slug: optionalText(extras.slug),
+          brand: optionalText(extras.brand),
+          sku: optionalText(extras.sku),
+          status,
+          extrasJson: JSON.stringify(extras),
+          displayOrder,
+          createdAt: asIsoDate(product.createdAt),
+          updatedAt: now,
+        },
       });
     }
 
@@ -205,34 +210,43 @@ try {
       : []) {
       const customer = asObject(rawCustomer);
       const createdAt = asIsoDate(customer.createdAt);
-      insertCustomer.run({
-        id: optionalText(customer.id) ?? `c-${crypto.randomUUID().slice(0, 8)}`,
-        name: optionalText(customer.name) ?? "Customer",
-        email: stringValue(customer.email).trim().toLowerCase(),
-        phone: stringValue(customer.phone).trim(),
-        passwordHash: stringValue(customer.passwordHash),
-        createdAt,
-        updatedAt: createdAt,
+      await tx.execute({
+        sql: insertCustomer,
+        args: {
+          id: optionalText(customer.id) ?? `c-${crypto.randomUUID().slice(0, 8)}`,
+          name: optionalText(customer.name) ?? "Customer",
+          email: stringValue(customer.email).trim().toLowerCase(),
+          phone: stringValue(customer.phone).trim(),
+          passwordHash: stringValue(customer.passwordHash),
+          createdAt,
+          updatedAt: createdAt,
+        },
       });
     }
 
     for (const rawEmail of Array.isArray(legacy.outbox) ? legacy.outbox : []) {
       const email = asObject(rawEmail);
-      insertOutbox.run({
-        to: stringValue(email.to),
-        subject: stringValue(email.subject),
-        text: stringValue(email.text),
-        sentAt: asIsoDate(email.sentAt),
-        delivered: Boolean(email.delivered) ? 1 : 0,
+      await tx.execute({
+        sql: insertOutbox,
+        args: {
+          to: stringValue(email.to),
+          subject: stringValue(email.subject),
+          text: stringValue(email.text),
+          sentAt: asIsoDate(email.sentAt),
+          delivered: Boolean(email.delivered) ? 1 : 0,
+        },
       });
     }
 
-    writeMeta.run(importMarker, now, now);
-    writeMeta.run(catalogMarker, "legacy-import", now);
-  });
+    await tx.execute({ sql: writeMeta, args: [importMarker, now, now] });
+    await tx.execute({ sql: writeMeta, args: [catalogMarker, "legacy-import", now] });
+    await tx.commit();
+  } catch (error) {
+    await tx.rollback().catch(() => {});
+    throw error;
+  }
 
-  importLegacy();
-  console.log("Imported legacy Buyzo data into the local SQLite database.");
+  console.log(`Imported legacy Buyzo data into ${config.url}`);
 } finally {
-  database.close();
+  client.close();
 }

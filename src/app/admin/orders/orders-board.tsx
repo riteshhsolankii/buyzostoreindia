@@ -7,6 +7,7 @@ import {
   type Order,
   type OrderStatus,
 } from "@/lib/types";
+import { useToast } from "../../toast-context";
 
 const STATUS_STYLE: Record<OrderStatus, string> = {
   placed: "bg-amber-500/15 text-amber-400 border-amber-500/30",
@@ -52,6 +53,7 @@ export function OrdersBoard({ initialOrders }: { initialOrders: Order[] }) {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [errorId, setErrorId] = useState<{ id: string; msg: string } | null>(null);
   const [days, setDays] = useState<Record<string, string>>({});
+  const { success, error } = useToast();
 
   const counts = useMemo(() => {
     const c: Record<string, number> = { all: orders.length };
@@ -72,10 +74,18 @@ export function OrdersBoard({ initialOrders }: { initialOrders: Order[] }) {
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) {
-        setErrorId({ id, msg: data?.error ?? "Action failed." });
+        const msg = data?.error ?? "Action failed.";
+        setErrorId({ id, msg });
+        error(msg, { title: `Order ${id}` });
         return;
       }
-      setOrders((prev) => prev.map((o) => (o.id === id ? (data as Order) : o)));
+      const updated = data as Order;
+      setOrders((prev) => prev.map((o) => (o.id === id ? updated : o)));
+      success(`Order ${id} is now ${updated.status}.`, { title: "Order updated" });
+    } catch {
+      const msg = "Network error — could not reach the server.";
+      setErrorId({ id, msg });
+      error(msg, { title: `Order ${id}` });
     } finally {
       setBusyId(null);
     }
@@ -225,7 +235,7 @@ export function OrdersBoard({ initialOrders }: { initialOrders: Order[] }) {
                       act(order.id, "accept", Number(days[order.id] ?? "3"))
                     }
                     disabled={busyId === order.id}
-                    className="rounded-lg bg-brand-gradient px-4 py-2 text-xs font-bold text-white transition hover:brightness-110 disabled:opacity-60"
+                    className="rounded-lg bg-brand-gradient px-4 py-2 text-xs font-bold text-on-accent transition hover:brightness-110 disabled:opacity-60"
                   >
                     {busyId === order.id ? "…" : "Accept order"}
                   </button>
@@ -235,7 +245,7 @@ export function OrdersBoard({ initialOrders }: { initialOrders: Order[] }) {
                 <button
                   onClick={() => act(order.id, "ship")}
                   disabled={busyId === order.id}
-                  className="rounded-lg bg-brand-gradient px-4 py-2 text-xs font-bold text-white transition hover:brightness-110 disabled:opacity-60"
+                  className="rounded-lg bg-brand-gradient px-4 py-2 text-xs font-bold text-on-accent transition hover:brightness-110 disabled:opacity-60"
                 >
                   {busyId === order.id ? "…" : "🚚 Mark shipped"}
                 </button>
@@ -244,7 +254,7 @@ export function OrdersBoard({ initialOrders }: { initialOrders: Order[] }) {
                 <button
                   onClick={() => act(order.id, "deliver")}
                   disabled={busyId === order.id}
-                  className="rounded-lg bg-brand-gradient px-4 py-2 text-xs font-bold text-white transition hover:brightness-110 disabled:opacity-60"
+                  className="rounded-lg bg-brand-gradient px-4 py-2 text-xs font-bold text-on-accent transition hover:brightness-110 disabled:opacity-60"
                 >
                   {busyId === order.id ? "…" : "📦 Mark delivered"}
                 </button>

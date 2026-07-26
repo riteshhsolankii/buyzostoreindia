@@ -4,7 +4,7 @@ import { createProduct, listProducts, type ProductInput } from "@/lib/products";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  return NextResponse.json(listProducts(), {
+  return NextResponse.json(await listProducts(), {
     headers: { "Cache-Control": "no-store" },
   });
 }
@@ -24,20 +24,20 @@ export async function POST(request: Request) {
       { status: 400 }
     );
   }
-  // Images are stored as data URLs inside the JSON database — keep them sane.
+  // Images are stored as data URLs in the database — keep them sane.
   if (body.image && body.image.length > 4_000_000) {
     return NextResponse.json({ error: "Image is too large." }, { status: 400 });
   }
   // SKU must be unique across the catalog.
   const sku = body.extras?.sku?.trim();
-  if (sku && listProducts().some((p) => p.extras?.sku === sku)) {
+  if (sku && (await listProducts()).some((p) => p.extras?.sku === sku)) {
     return NextResponse.json(
       { error: `SKU "${sku}" is already used by another product.` },
       { status: 409 }
     );
   }
 
-  const product = createProduct({
+  const product = await createProduct({
     name: body.name,
     description: body.description ?? "",
     price: Number(body.price),

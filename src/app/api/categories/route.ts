@@ -14,7 +14,7 @@ async function isAdmin(request: NextRequest): Promise<boolean> {
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  return NextResponse.json(listCategories(), {
+  return NextResponse.json(await listCategories(), {
     headers: { "Cache-Control": "no-store" },
   });
 }
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
   const body = (await request.json().catch(() => null)) as {
     name?: string;
   } | null;
-  const result = addCategory(body?.name ?? "");
+  const result = await addCategory(body?.name ?? "");
   if (result === "invalid") {
     return NextResponse.json(
       { error: "Category name is required." },
@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
       { status: 409 }
     );
   }
-  return NextResponse.json(listCategories(), { status: 201 });
+  return NextResponse.json(await listCategories(), { status: 201 });
 }
 
 export async function PUT(request: NextRequest) {
@@ -50,7 +50,7 @@ export async function PUT(request: NextRequest) {
     from?: string;
     to?: string;
   } | null;
-  const result = renameCategory(body?.from ?? "", body?.to ?? "");
+  const result = await renameCategory(body?.from ?? "", body?.to ?? "");
   if (result === "invalid") {
     return NextResponse.json(
       { error: "New category name is required." },
@@ -66,7 +66,7 @@ export async function PUT(request: NextRequest) {
       { status: 409 }
     );
   }
-  return NextResponse.json(listCategories());
+  return NextResponse.json(await listCategories());
 }
 
 export async function DELETE(request: NextRequest) {
@@ -76,7 +76,7 @@ export async function DELETE(request: NextRequest) {
   const body = (await request.json().catch(() => null)) as {
     name?: string;
   } | null;
-  const result = deleteCategory(body?.name ?? "");
+  const result = await deleteCategory(body?.name ?? "");
   if (result === "not-found") {
     return NextResponse.json({ error: "Category not found." }, { status: 404 });
   }
@@ -86,5 +86,5 @@ export async function DELETE(request: NextRequest) {
       { status: 409 }
     );
   }
-  return NextResponse.json(listCategories());
+  return NextResponse.json(await listCategories());
 }

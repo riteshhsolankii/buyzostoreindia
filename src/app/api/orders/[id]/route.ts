@@ -14,7 +14,7 @@ export async function GET(request: NextRequest, { params }: Context) {
     return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   }
   const { id } = await params;
-  const order = getCustomerOrder(id, customer.id);
+  const order = await getCustomerOrder(id, customer.id);
   if (!order) {
     return NextResponse.json({ error: "Order not found" }, { status: 404 });
   }
@@ -30,7 +30,7 @@ export async function DELETE(request: NextRequest, { params }: Context) {
     return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   }
   const { id } = await params;
-  const owned = getCustomerOrder(id, customer.id);
+  const owned = await getCustomerOrder(id, customer.id);
   if (!owned) {
     return NextResponse.json({ error: "Order not found" }, { status: 404 });
   }
@@ -40,7 +40,7 @@ export async function DELETE(request: NextRequest, { params }: Context) {
       { status: 409 }
     );
   }
-  const result = cancelOrder(id);
+  const result = await cancelOrder(id);
   if (!result.ok) {
     return NextResponse.json({ error: result.error }, { status: result.status });
   }

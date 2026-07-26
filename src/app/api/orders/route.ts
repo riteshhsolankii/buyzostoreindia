@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
   if (!customer) {
     return NextResponse.json({ error: "Not signed in" }, { status: 401 });
   }
-  return NextResponse.json(listCustomerOrders(customer.id), {
+  return NextResponse.json(await listCustomerOrders(customer.id), {
     headers: { "Cache-Control": "no-store" },
   });
 }
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
   }
 
   const note = typeof body.note === "string" ? body.note.slice(0, 500) : undefined;
-  const result = createOrder({ customerId: customer.id, items, address, note });
+  const result = await createOrder({ customerId: customer.id, items, address, note });
   if (!result.ok) {
     return NextResponse.json({ error: result.error }, { status: result.status });
   }

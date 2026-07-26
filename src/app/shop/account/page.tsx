@@ -37,7 +37,7 @@ function CheckDot({ ok }: { ok: boolean }) {
   return (
     <span
       className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[9px] font-bold transition-colors duration-200 ${
-        ok ? "bg-accent text-white" : "bg-surface-2 text-muted"
+        ok ? "bg-accent text-on-accent" : "bg-surface-2 text-muted"
       }`}
     >
       ✓
@@ -68,7 +68,7 @@ export default function AccountPage() {
   const [otpVerified, setOtpVerified] = useState(false);
   const [otpBusy, setOtpBusy] = useState(false);
   const [otpError, setOtpError] = useState<string | null>(null);
-  const [demoCode, setDemoCode] = useState<string | null>(null);
+  const [otpDemoMode, setOtpDemoMode] = useState(false);
   const [resendIn, setResendIn] = useState(0);
 
   useEffect(() => {
@@ -83,20 +83,16 @@ export default function AccountPage() {
       onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value;
         setForm((f) => ({ ...f, [key]: value }));
-        if (key === "phone") {
-          // New number → previous verification no longer counts.
+        if (key === "email") {
+          // New address → previous verification no longer counts.
           setOtpSent(false);
           setOtpVerified(false);
           setOtpCode("");
           setOtpError(null);
-          setDemoCode(null);
         }
       },
     };
   }
-
-  const phoneDigits = form.phone.replace(/[^\d]/g, "");
-  const phoneLooksValid = phoneDigits.length >= 7 && phoneDigits.length <= 15;
 
   const pwChecks = [
     { label: "8+ characters", ok: form.password.length >= 8 },
@@ -110,11 +106,7 @@ export default function AccountPage() {
   const emailOk = /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(form.email.trim());
 
   const canRegister =
-    form.name.trim().length > 1 &&
-    emailOk &&
-    pwOk &&
-    confirmOk &&
-    (form.phone.trim() === "" || otpVerified);
+    form.name.trim().length > 1 && emailOk && otpVerified && pwOk && confirmOk;
 
   async function handleSendOtp() {
     setOtpBusy(true);
@@ -122,17 +114,17 @@ export default function AccountPage() {
     const res = await fetch("/api/customers/otp", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phone: form.phone }),
+      body: JSON.stringify({ email: form.email }),
     });
     const data = await res.json().catch(() => null);
     setOtpBusy(false);
     if (!res.ok) {
-      setOtpError(data?.error ?? "Could not send OTP. Try again.");
+      setOtpError(data?.error ?? "Could not send the code. Try again.");
       return;
     }
     setOtpSent(true);
     setOtpCode("");
-    setDemoCode(data?.demoCode ?? null);
+    setOtpDemoMode(Boolean(data?.demoMode));
     setResendIn(30);
   }
 
@@ -142,7 +134,7 @@ export default function AccountPage() {
     const res = await fetch("/api/customers/otp/verify", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ phone: form.phone, code: otpCode }),
+      body: JSON.stringify({ email: form.email, code: otpCode }),
     });
     const data = await res.json().catch(() => null);
     setOtpBusy(false);
@@ -151,7 +143,6 @@ export default function AccountPage() {
       return;
     }
     setOtpVerified(true);
-    setDemoCode(null);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -191,7 +182,7 @@ export default function AccountPage() {
     setOtpSent(false);
     setOtpVerified(false);
     setOtpCode("");
-    setDemoCode(null);
+    setOtpError(null);
   }
 
   return (
@@ -280,7 +271,7 @@ export default function AccountPage() {
                   }}
                   className={`rounded-md py-2 transition-all duration-200 ${
                     mode === m
-                      ? "bg-brand-gradient text-white shadow"
+                      ? "bg-brand-gradient text-on-accent shadow"
                       : "text-muted hover:text-foreground"
                   }`}
                 >
@@ -302,31 +293,25 @@ export default function AccountPage() {
                 </label>
               )}
 
-              <label className="block">
+              {/* Email — verified with a mailed code when registering */}
+              <div>
                 <span className="text-sm font-medium text-muted">Email *</span>
-                <input
-                  {...field("email")}
-                  type="email"
-                  required
-                  autoComplete="email"
-                  className={inputClass}
-                  placeholder="Enter your email address"
-                />
-              </label>
-
-              {/* Phone + OTP */}
-              {mode === "register" && (
-                <div className="animate-fade-up">
-                  <span className="text-sm font-medium text-muted">Phone</span>
-                  <div className="mt-1 flex gap-2">
-                    <input
-                      {...field("phone")}
-                      type="tel"
-                      disabled={otpVerified}
-                      className={`${inputClass} mt-0 flex-1 disabled:opacity-70`}
-                      placeholder="Enter your phone number"
-                    />
-                    {otpVerified ? (
+                <div className={mode === "register" ? "mt-1 flex gap-2" : undefined}>
+                  <input
+                    {...field("email")}
+                    type="email"
+                    required
+                    autoComplete="email"
+                    disabled={mode === "register" && otpVerified}
+                    className={
+                      mode === "register"
+                        ? `${inputClass} mt-0 flex-1 disabled:opacity-70`
+                        : inputClass
+                    }
+                    placeholder="Enter your email address"
+                  />
+                  {mode === "register" &&
+                    (otpVerified ? (
                       <span className="flex items-center gap-1.5 rounded-full bg-accent/15 px-3 text-xs font-bold text-accent">
                         <CheckDot ok /> Verified
                       </span>
@@ -334,7 +319,7 @@ export default function AccountPage() {
                       <button
                         type="button"
                         onClick={handleSendOtp}
-                        disabled={!phoneLooksValid || otpBusy || resendIn > 0}
+                        disabled={!emailOk || otpBusy || resendIn > 0}
                         className="shrink-0 rounded-lg border border-accent/40 px-3.5 text-xs font-bold text-accent transition hover:bg-accent/10 disabled:cursor-not-allowed disabled:opacity-40"
                       >
                         {otpBusy && !otpSent
@@ -342,45 +327,65 @@ export default function AccountPage() {
                           : resendIn > 0
                             ? `Resend in ${resendIn}s`
                             : otpSent
-                              ? "Resend OTP"
-                              : "Send OTP"}
+                              ? "Resend code"
+                              : "Send code"}
                       </button>
-                    )}
-                  </div>
-
-                  {otpSent && !otpVerified && (
-                    <div className="animate-fade-up mt-2 rounded-lg border border-line bg-surface-2/60 p-3">
-                      {demoCode && (
-                        <p className="mb-2 rounded-md bg-accent/10 px-2.5 py-1.5 text-[11px] text-accent">
-                          Demo mode (no SMS gateway): your OTP is{" "}
-                          <b className="tracking-widest">{demoCode}</b>
-                        </p>
-                      )}
-                      <div className="flex gap-2">
-                        <input
-                          value={otpCode}
-                          onChange={(e) =>
-                            setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))
-                          }
-                          inputMode="numeric"
-                          className={`${inputClass} mt-0 flex-1 text-center tracking-[0.4em]`}
-                          placeholder="Enter 6-digit OTP"
-                        />
-                        <button
-                          type="button"
-                          onClick={handleVerifyOtp}
-                          disabled={otpCode.length !== 6 || otpBusy}
-                          className="shrink-0 rounded-lg bg-brand-gradient px-4 text-xs font-bold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
-                        >
-                          {otpBusy ? "Checking…" : "Verify"}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                  {otpError && (
-                    <p className="animate-fade-in mt-1.5 text-xs text-danger">{otpError}</p>
-                  )}
+                    ))}
                 </div>
+
+                {mode === "register" && otpSent && !otpVerified && (
+                  <div className="animate-fade-up mt-2 rounded-lg border border-line bg-surface-2/60 p-3">
+                    {otpDemoMode ? (
+                      <p className="mb-2 rounded-md bg-accent/10 px-2.5 py-1.5 text-[11px] text-accent">
+                        No mail provider is configured, so the code was printed
+                        to the server console instead of being emailed.
+                      </p>
+                    ) : (
+                      <p className="mb-2 text-[11px] text-muted">
+                        We emailed a 6-digit code to{" "}
+                        <b className="text-foreground">{form.email.trim()}</b>.
+                        It expires in 10 minutes.
+                      </p>
+                    )}
+                    <div className="flex gap-2">
+                      <input
+                        value={otpCode}
+                        onChange={(e) =>
+                          setOtpCode(e.target.value.replace(/\D/g, "").slice(0, 6))
+                        }
+                        inputMode="numeric"
+                        autoComplete="one-time-code"
+                        className={`${inputClass} mt-0 flex-1 text-center tracking-[0.4em]`}
+                        placeholder="Enter 6-digit code"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleVerifyOtp}
+                        disabled={otpCode.length !== 6 || otpBusy}
+                        className="shrink-0 rounded-lg bg-brand-gradient px-4 text-xs font-bold text-on-accent transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        {otpBusy ? "Checking…" : "Verify"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {mode === "register" && otpError && (
+                  <p className="animate-fade-in mt-1.5 text-xs text-danger">{otpError}</p>
+                )}
+              </div>
+
+              {/* Phone — optional profile detail, not verified */}
+              {mode === "register" && (
+                <label className="animate-fade-up block">
+                  <span className="text-sm font-medium text-muted">Phone</span>
+                  <input
+                    {...field("phone")}
+                    type="tel"
+                    autoComplete="tel"
+                    className={inputClass}
+                    placeholder="Enter your phone number (optional)"
+                  />
+                </label>
               )}
 
               {/* Password */}
@@ -466,7 +471,7 @@ export default function AccountPage() {
               <button
                 type="submit"
                 disabled={submitting || (mode === "register" && !canRegister)}
-                className="w-full rounded-lg bg-brand-gradient px-4 py-3 text-sm font-extrabold text-white shadow-lg shadow-accent/25 transition hover:shadow-accent/40 hover:brightness-110 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
+                className="w-full rounded-lg bg-brand-gradient px-4 py-3 text-sm font-extrabold text-on-accent shadow-lg shadow-accent/25 transition hover:shadow-accent/40 hover:brightness-110 active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {submitting
                   ? "Please wait…"

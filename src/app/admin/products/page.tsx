@@ -52,7 +52,7 @@ export default function AdminProductsPage() {
         </div>
         <Link
           href="/admin/products/new"
-          className="rounded-lg bg-brand-gradient px-4 py-2 text-sm font-bold text-white transition hover:brightness-110 active:scale-95"
+          className="rounded-lg bg-brand-gradient px-4 py-2 text-sm font-bold text-on-accent transition hover:brightness-110 active:scale-95"
         >
           + Add product
         </Link>

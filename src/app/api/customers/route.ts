@@ -7,9 +7,10 @@ import {
   customerToken,
   findCustomerByEmail,
   listCustomers,
+  normalizePhone,
   toPublic,
 } from "@/lib/customers";
-import { consumeOtp, isPhoneVerified, normalizePhone } from "@/lib/otp";
+import { consumeOtp, isTargetVerified } from "@/lib/otp";
 import { sendWelcomeEmail } from "@/lib/mailer";
 
 // Admin-only: list every registered customer (leads).
@@ -20,7 +21,7 @@ export async function GET(request: NextRequest) {
   if (!admin) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  return NextResponse.json(listCustomers());
+  return NextResponse.json(await listCustomers());
 }
 
 function passwordProblem(password: string): string | null {
@@ -59,13 +60,14 @@ export async function POST(request: Request) {
       { status: 400 }
     );
   }
-  if (phone && !isPhoneVerified(phone)) {
+  // The email must have been proved reachable by entering the mailed code.
+  if (!(await isTargetVerified(email))) {
     return NextResponse.json(
-      { error: "Please verify your phone number with the OTP first." },
+      { error: "Please verify your email with the code we sent you first." },
       { status: 400 }
     );
   }
-  if (findCustomerByEmail(email)) {
+  if (await findCustomerByEmail(email)) {
     return NextResponse.json(
       { error: "An account with this email already exists. Please sign in." },
       { status: 409 }
@@ -78,7 +80,7 @@ export async function POST(request: Request) {
     phone: phone ? normalizePhone(phone) : "",
     password,
   });
-  if (phone) consumeOtp(phone);
+  await consumeOtp(email);
 
   // Plain-text welcome mail; real delivery needs RESEND_API_KEY in .env.local.
   const emailSent = await sendWelcomeEmail(email, name);

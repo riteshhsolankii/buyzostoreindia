@@ -8,7 +8,7 @@ export async function GET(request: NextRequest) {
   if (!(await isValidSession(request.cookies.get(SESSION_COOKIE)?.value))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  return NextResponse.json(listOrders(), {
+  return NextResponse.json(await listOrders(), {
     headers: { "Cache-Control": "no-store" },
   });
 }

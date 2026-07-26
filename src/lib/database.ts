@@ -1,71 +1,97 @@
 import "server-only";
 
-import fs from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-import Database from "better-sqlite3";
-
-type DatabaseConnection = Database.Database;
+import { createClient, type Client, type InArgs } from "@libsql/client";
 
 const globalStore = globalThis as unknown as {
-  __buyzoDatabase?: DatabaseConnection;
+  __buyzoDatabase?: Client;
 };
 
-function resolveDatabasePath(url = process.env.DATABASE_URL): string {
-  if (!url) return path.join(process.cwd(), "data", "buyzo.db");
-  if (!url.startsWith("file:")) {
-    throw new Error("DATABASE_URL must be a local SQLite file: URL.");
+/**
+ * Resolve the database to talk to. Accepts a hosted libSQL/Turso URL
+ * (`libsql://…`, needs TURSO_AUTH_TOKEN) or a local SQLite file (`file:…`),
+ * so the same code runs on Vercel and on a laptop.
+ */
+function resolveConfig(): { url: string; authToken?: string } {
+  const url =
+    process.env.TURSO_DATABASE_URL ??
+    process.env.DATABASE_URL ??
+    "file:data/buyzo.db";
+  const authToken = process.env.TURSO_AUTH_TOKEN;
+
+  if (!url.startsWith("file:") && !authToken) {
+    throw new Error(
+      "TURSO_AUTH_TOKEN is required for a remote libSQL database URL."
+    );
   }
-  if (url.startsWith("file://")) return fileURLToPath(url);
-  return path.resolve(process.cwd(), decodeURIComponent(url.slice("file:".length)));
+  return authToken ? { url, authToken } : { url };
 }
 
-function applyMigrations(database: DatabaseConnection): void {
-  database.exec(`
-    CREATE TABLE IF NOT EXISTS database_migrations (
-      id TEXT PRIMARY KEY,
-      applied_at TEXT NOT NULL
-    ) STRICT;
-  `);
-
-  const migrationsDir = path.join(process.cwd(), "database", "migrations");
-  const migrations = fs
-    .readdirSync(migrationsDir)
-    .filter((file) => file.endsWith(".sql"))
-    .sort();
-  const findApplied = database.prepare(
-    "SELECT 1 FROM database_migrations WHERE id = ?"
-  );
-  const recordApplied = database.prepare(
-    "INSERT INTO database_migrations (id, applied_at) VALUES (?, ?)"
-  );
-
-  for (const id of migrations) {
-    if (findApplied.get(id)) continue;
-    const sql = fs.readFileSync(path.join(migrationsDir, id), "utf8");
-    database.transaction(() => {
-      database.exec(sql);
-      recordApplied.run(id, new Date().toISOString());
-    })();
-  }
-}
-
-export function getDatabase(): DatabaseConnection {
+export function getDatabase(): Client {
   if (globalStore.__buyzoDatabase) return globalStore.__buyzoDatabase;
-
-  const databasePath = resolveDatabasePath();
-  fs.mkdirSync(path.dirname(databasePath), { recursive: true });
-
-  const database = new Database(databasePath);
-  database.pragma("journal_mode = WAL");
-  database.pragma("foreign_keys = ON");
-  database.pragma("busy_timeout = 5000");
-  applyMigrations(database);
-
-  globalStore.__buyzoDatabase = database;
-  return database;
+  globalStore.__buyzoDatabase = createClient(resolveConfig());
+  return globalStore.__buyzoDatabase;
 }
 
-export function transaction<T>(work: () => T): T {
-  return getDatabase().transaction(work)();
+/** Every row this app reads maps cleanly onto a plain object. */
+type QueryRunner = {
+  all<T>(sql: string, args?: InArgs): Promise<T[]>;
+  one<T>(sql: string, args?: InArgs): Promise<T | undefined>;
+  /** Returns the number of rows the statement changed. */
+  run(sql: string, args?: InArgs): Promise<number>;
+};
+
+function runnerFor(execute: Client["execute"]): QueryRunner {
+  return {
+    async all<T>(sql: string, args: InArgs = []): Promise<T[]> {
+      const result = await execute({ sql, args });
+      return result.rows as unknown as T[];
+    },
+    async one<T>(sql: string, args: InArgs = []): Promise<T | undefined> {
+      const result = await execute({ sql, args });
+      return result.rows[0] as unknown as T | undefined;
+    },
+    async run(sql: string, args: InArgs = []): Promise<number> {
+      const result = await execute({ sql, args });
+      return result.rowsAffected;
+    },
+  };
 }
+
+function clientRunner(): QueryRunner {
+  const client = getDatabase();
+  return runnerFor((stmt) => client.execute(stmt));
+}
+
+export function all<T>(sql: string, args?: InArgs): Promise<T[]> {
+  return clientRunner().all<T>(sql, args);
+}
+
+export function one<T>(sql: string, args?: InArgs): Promise<T | undefined> {
+  return clientRunner().one<T>(sql, args);
+}
+
+export function run(sql: string, args?: InArgs): Promise<number> {
+  return clientRunner().run(sql, args);
+}
+
+/**
+ * Run `work` inside a write transaction. The callback gets its own runner —
+ * every read and write must go through it, otherwise the statement lands
+ * outside the transaction on a separate connection.
+ */
+export async function transaction<T>(
+  work: (tx: QueryRunner) => Promise<T>
+): Promise<T> {
+  const tx = await getDatabase().transaction("write");
+  try {
+    const result = await work(runnerFor((stmt) => tx.execute(stmt)));
+    await tx.commit();
+    return result;
+  } catch (error) {
+    // A failed stream can make rollback throw too; the original error matters.
+    await tx.rollback().catch(() => {});
+    throw error;
+  }
+}
+
+export type { QueryRunner };

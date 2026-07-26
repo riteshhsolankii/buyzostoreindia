@@ -7,6 +7,7 @@ import { formatINR, type Order } from "@/lib/types";
 import { useCart } from "../../cart-context";
 import { useCustomer } from "../../customer-context";
 import { AuthModal } from "../../auth-modal";
+import { useToast } from "../../../toast-context";
 
 const ctaClass =
   "rounded-lg bg-brand-gradient px-6 py-2.5 text-sm font-bold transition hover:brightness-110";
@@ -14,6 +15,7 @@ const ctaClass =
 export default function CartPage() {
   const { items, total, setQuantity, removeItem, clear } = useCart();
   const { customer } = useCustomer();
+  const { error, warning } = useToast();
   const [placedOrder, setPlacedOrder] = useState<Order | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
@@ -39,6 +41,7 @@ export default function CartPage() {
     const address = addresses.find((a) => a.id === selectedAddressId);
     if (!address) {
       setAddressError(true);
+      warning("Choose a delivery address before placing your order.");
       return;
     }
     setSubmitting(true);
@@ -57,11 +60,18 @@ export default function CartPage() {
       });
       const data = await res.json().catch(() => null);
       if (!res.ok) {
-        setOrderError(data?.error ?? "Could not place your order. Try again.");
+        const msg = data?.error ?? "Could not place your order. Try again.";
+        setOrderError(msg);
+        error(msg, { title: "Order failed" });
         return;
       }
       setPlacedOrder(data as Order);
       clear();
+    } catch {
+      // Network/offline failures previously failed silently.
+      const msg = "Network error — check your connection and try again.";
+      setOrderError(msg);
+      error(msg, { title: "Order failed" });
     } finally {
       setSubmitting(false);
     }

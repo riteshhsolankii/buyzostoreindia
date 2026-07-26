@@ -90,7 +90,7 @@ export async function PATCH(request: NextRequest) {
     patch.addresses = cleaned;
   }
 
-  const updated = updateCustomer(customer.id, patch);
+  const updated = await updateCustomer(customer.id, patch);
   if (!updated) {
     return NextResponse.json({ error: "Account not found" }, { status: 404 });
   }

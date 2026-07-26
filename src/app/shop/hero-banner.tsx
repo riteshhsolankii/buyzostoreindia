@@ -5,7 +5,7 @@ import Link from "next/link";
 
 export function HeroBanner() {
   return (
-    <section className="relative overflow-hidden rounded-[32px] border border-line bg-[linear-gradient(135deg,#fff8f2_0%,#ffeede_100%)] shadow-[0_20px_70px_rgba(244,113,28,0.12)]">
+    <section className="relative overflow-hidden rounded-[32px] border border-line bg-[linear-gradient(135deg,#101507_0%,#000000_100%)] shadow-[0_20px_70px_rgba(156,244,0,0.10)]">
       <div className="pointer-events-none absolute -left-16 top-10 h-56 w-56 rounded-full bg-accent/15 blur-3xl" />
       <div className="pointer-events-none absolute bottom-0 right-0 h-72 w-72 rounded-full bg-accent/10 blur-3xl" />
       <div className="pointer-events-none absolute left-1/2 top-0 h-px w-2/3 -translate-x-1/2 bg-gradient-to-r from-transparent via-accent/50 to-transparent" />
@@ -31,20 +31,20 @@ export function HeroBanner() {
             </Link>
             <Link
               href="/shop?cat=Wearables"
-              className="inline-flex items-center rounded-full border border-line bg-white px-6 py-3 text-sm font-semibold text-foreground transition hover:border-accent hover:text-accent"
+              className="inline-flex items-center rounded-full border border-line bg-surface-2 px-6 py-3 text-sm font-semibold text-foreground transition hover:border-accent hover:text-accent"
             >
               Discover wearables
             </Link>
           </div>
           <div className="mt-8 flex flex-wrap gap-4 text-sm text-muted">
-            <span className="rounded-full bg-white px-3 py-2">Free shipping above ₹999</span>
-            <span className="rounded-full bg-white px-3 py-2">Secure checkout</span>
-            <span className="rounded-full bg-white px-3 py-2">Fast deliveries</span>
+            <span className="rounded-full bg-surface-2 px-3 py-2">Free shipping above ₹999</span>
+            <span className="rounded-full bg-surface-2 px-3 py-2">Secure checkout</span>
+            <span className="rounded-full bg-surface-2 px-3 py-2">Fast deliveries</span>
           </div>
         </div>
 
         <div className="relative mx-auto w-full max-w-[500px]">
-          <div className="absolute inset-x-8 top-6 h-16 rounded-full bg-white/70 blur-2xl" />
+          <div className="absolute inset-x-8 top-6 h-16 rounded-full bg-accent/20 blur-2xl" />
           <div className="relative overflow-hidden rounded-[28px] border border-line bg-surface p-3 shadow-[0_18px_70px_rgba(0,0,0,0.6)]">
             <Image
               src="/hero-model.svg"

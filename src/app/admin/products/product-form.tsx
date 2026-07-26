@@ -5,6 +5,7 @@ import Link from "next/link";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { Product, ProductVariant } from "@/lib/types";
+import { useToast } from "../../toast-context";
 
 /* ------------------------------------------------------------------ */
 /*  Shared styles                                                      */
@@ -163,7 +164,7 @@ function Select({
               }}
               className="flex w-full items-center gap-2 border-t border-line px-4 py-2.5 text-left text-sm font-semibold text-accent transition hover:bg-accent/10"
             >
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-accent text-xs font-bold text-white">
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-accent text-xs font-bold text-on-accent">
                 +
               </span>
               {createLabel}
@@ -261,7 +262,7 @@ function Toggle({
       >
         <span
           className={`absolute top-0.5 h-4 w-4 rounded-full transition-all duration-200 ${
-            checked ? "left-5 bg-white" : "left-0.5 bg-white/70"
+            checked ? "left-5 bg-black" : "left-0.5 bg-muted"
           }`}
         />
       </span>
@@ -332,7 +333,7 @@ function UploadBox({
         <>
           <Image src={image} alt="" fill unoptimized className="object-cover" />
           <div className="absolute inset-0 flex items-end justify-end gap-2 bg-gradient-to-t from-black/70 to-transparent p-2 opacity-0 transition hover:opacity-100">
-            <label className="cursor-pointer rounded-md bg-accent px-2.5 py-1 text-[11px] font-bold text-white">
+            <label className="cursor-pointer rounded-md bg-accent px-2.5 py-1 text-[11px] font-bold text-on-accent">
               Change
               <input
                 type="file"
@@ -347,7 +348,7 @@ function UploadBox({
             <button
               type="button"
               onClick={() => onImage("")}
-              className="rounded-md bg-black/70 px-2.5 py-1 text-[11px] font-bold text-white transition hover:bg-danger"
+              className="rounded-md bg-black/70 px-2.5 py-1 text-[11px] font-bold text-white transition hover:bg-danger hover:text-black"
             >
               Remove
             </button>
@@ -407,7 +408,7 @@ function GalleryUpload({
           <button
             type="button"
             onClick={() => onImages(images.filter((_, x) => x !== i))}
-            className="absolute right-1 top-1 rounded-full bg-black/70 px-1.5 text-[11px] text-white opacity-0 transition group-hover:opacity-100 hover:bg-danger"
+            className="absolute right-1 top-1 rounded-full bg-black/70 px-1.5 text-[11px] text-white opacity-0 transition group-hover:opacity-100 hover:bg-danger hover:text-black"
           >
             ✕
           </button>
@@ -651,6 +652,7 @@ export function ProductForm({ initial }: { initial?: Product }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("basic");
   const [newCat, setNewCat] = useState(false);
+  const { success, error, warning } = useToast();
 
   const [cats, setCats] = useState<string[]>([]);
 
@@ -725,7 +727,10 @@ export function ProductForm({ initial }: { initial?: Product }) {
   }
 
   async function save(status: "draft" | "active", action: string) {
-    if (!validate()) return;
+    if (!validate()) {
+      warning("Some required fields need attention — check the highlighted ones.");
+      return;
+    }
     setTopError(null);
     setBusy(action);
 
@@ -821,10 +826,20 @@ export function ProductForm({ initial }: { initial?: Product }) {
     setBusy(null);
     if (!res.ok) {
       const data = await res.json().catch(() => null);
-      setTopError(data?.error ?? "Something went wrong while saving.");
+      const msg = data?.error ?? "Something went wrong while saving.";
+      setTopError(msg);
+      error(msg, { title: "Not saved" });
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
+    // The provider lives in the root layout, so this survives the redirect
+    // and lands on the products list.
+    success(
+      initial
+        ? `"${payload.name}" saved.`
+        : `"${payload.name}" created as ${status === "draft" ? "a draft" : "active"}.`,
+      { title: "Product saved" }
+    );
     router.push("/admin/products");
     router.refresh();
   }
@@ -833,7 +848,26 @@ export function ProductForm({ initial }: { initial?: Product }) {
     if (!initial) return;
     if (!confirm(`Delete "${initial.name}"? This cannot be undone.`)) return;
     setBusy("delete");
-    await fetch(`/api/products/${initial.id}`, { method: "DELETE" });
+    const name = initial.name;
+    try {
+      const res = await fetch(`/api/products/${initial.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        // A failed delete used to redirect as if it had worked.
+        const data = await res.json().catch(() => null);
+        const msg = data?.error ?? "Could not delete this product.";
+        setTopError(msg);
+        error(msg, { title: "Delete failed" });
+        setBusy(null);
+        return;
+      }
+    } catch {
+      const msg = "Network error — could not delete this product.";
+      setTopError(msg);
+      error(msg, { title: "Delete failed" });
+      setBusy(null);
+      return;
+    }
+    success(`"${name}" deleted.`);
     router.push("/admin/products");
     router.refresh();
   }
@@ -919,7 +953,7 @@ export function ProductForm({ initial }: { initial?: Product }) {
               type="button"
               onClick={() => save("active", "publish")}
               disabled={busy !== null}
-              className="rounded-lg bg-brand-gradient px-5 py-2 text-sm font-extrabold text-white shadow-lg shadow-accent/20 transition hover:brightness-110 disabled:opacity-50"
+              className="rounded-lg bg-brand-gradient px-5 py-2 text-sm font-extrabold text-on-accent shadow-lg shadow-accent/20 transition hover:brightness-110 disabled:opacity-50"
             >
               {busy === "publish" ? "Publishing…" : "Publish"}
             </button>
@@ -933,7 +967,7 @@ export function ProductForm({ initial }: { initial?: Product }) {
               onClick={() => goTo(s.id)}
               className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
                 activeTab === s.id
-                  ? "bg-accent text-white"
+                  ? "bg-accent text-on-accent"
                   : "bg-surface text-muted hover:text-foreground"
               }`}
             >
@@ -1454,7 +1488,7 @@ export function ProductForm({ initial }: { initial?: Product }) {
               type="button"
               onClick={() => save("active", "publish")}
               disabled={busy !== null}
-              className="rounded-lg bg-brand-gradient px-6 py-2.5 text-sm font-extrabold text-white shadow-lg shadow-accent/20 transition hover:brightness-110 disabled:opacity-50"
+              className="rounded-lg bg-brand-gradient px-6 py-2.5 text-sm font-extrabold text-on-accent shadow-lg shadow-accent/20 transition hover:brightness-110 disabled:opacity-50"
             >
               {busy === "publish" ? "Publishing…" : "Publish"}
             </button>

@@ -89,7 +89,7 @@ export default function CouponCreatePage() {
 
         <button
           type="button"
-          className="mt-6 rounded-lg bg-brand-gradient px-5 py-2.5 text-sm font-extrabold text-white shadow-lg shadow-accent/20 transition hover:brightness-110"
+          className="mt-6 rounded-lg bg-brand-gradient px-5 py-2.5 text-sm font-extrabold text-on-accent shadow-lg shadow-accent/20 transition hover:brightness-110"
         >
           Save Coupon
         </button>

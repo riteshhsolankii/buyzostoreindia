@@ -9,7 +9,7 @@ import {
   type Order,
 } from "@/lib/types";
 import { useCustomer } from "../../customer-context";
-import { BuyzoMark } from "../../site-header";
+import { BuyzoLockup } from "../../site-header";
 
 function fmtDate(iso?: string): string {
   if (!iso) return "";
@@ -68,12 +68,8 @@ export default function MyOrdersPage() {
           </svg>
           Account
         </Link>
-        <Link href="/shop" className="flex items-center gap-2 font-extrabold">
-          <BuyzoMark size={26} />
-          <span>
-            <span className="text-foreground">Buy</span>
-            <span className="text-brand-gradient">zo</span>
-          </span>
+        <Link href="/shop" className="flex items-center" aria-label="Buyzo — home">
+          <BuyzoLockup height={24} />
         </Link>
       </div>
 

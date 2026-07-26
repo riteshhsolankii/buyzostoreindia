@@ -83,7 +83,7 @@ function ProductCard({
           className="object-cover transition-transform duration-500 group-hover:scale-105"
         />
         {product.stock === 0 && (
-          <span className="absolute left-3 top-3 rounded-full bg-danger/90 px-3 py-1 text-[11px] font-bold text-white">
+          <span className="absolute left-3 top-3 rounded-full bg-danger/90 px-3 py-1 text-[11px] font-bold text-black">
             SOLD OUT
           </span>
         )}
